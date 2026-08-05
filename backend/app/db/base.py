@@ -5,9 +5,9 @@ declarative mapping, async attributes (`AsyncAttrs`), and deterministic constrai
 naming conventions. It provides reusable mixins for UUID primary keys and audit timestamps.
 """
 
-from datetime import datetime
 import re
 import uuid
+from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, MetaData, func
 from sqlalchemy.dialects.postgresql import UUID

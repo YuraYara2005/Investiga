@@ -1,6 +1,7 @@
 """Unit tests for the Security and Cryptography Infrastructure."""
 
 from datetime import timedelta
+
 import pytest
 
 from app.core.security import (

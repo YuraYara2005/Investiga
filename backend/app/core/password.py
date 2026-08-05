@@ -7,6 +7,7 @@ prevent CPU-intensive hashing from stalling FastAPI's async event loop.
 """
 
 import asyncio
+
 from passlib.context import CryptContext
 
 # Configure Passlib with Argon2 as the primary scheme and bcrypt for legacy compatibility

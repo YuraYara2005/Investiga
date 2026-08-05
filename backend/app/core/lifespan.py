@@ -6,9 +6,9 @@ and clean resource teardown for the logging subsystem, database connection pools
 and future infrastructure providers (Redis, Qdrant, AI model caches).
 """
 
+import sys
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-import sys
 
 from fastapi import FastAPI
 

@@ -5,9 +5,10 @@ architecture using Pydantic Settings v2. It follows the 12-factor app methodolog
 ensuring zero hardcoded credentials and seamless transitions across environments.
 """
 
-from functools import lru_cache
 import os
-from typing import Literal
+from functools import lru_cache
+from typing import Annotated, Any, Literal
+
 from pydantic import BaseModel, Field, PostgresDsn, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -24,10 +25,10 @@ class AppSettings(BaseModel):
         description="Application tagline.",
     )
     version: str = Field(default="0.1.0", description="Semantic version of the backend.")
-    environment: EnvironmentType = Field(
-        default="development",
-        description="Deployment runtime environment.",
-    )
+    environment: Annotated[
+        EnvironmentType,
+        Field(description="Deployment runtime environment."),
+    ] = "development"
     debug: bool = Field(
         default=False,
         description="Debug mode enabling verbose traces and auto-reloading.",
@@ -135,10 +136,10 @@ class DatabaseSettings(BaseModel):
 class LoggingSettings(BaseModel):
     """Structured logging configuration."""
 
-    log_level: LogLevelType = Field(
-        default="INFO",
-        description="Minimum log severity level to capture.",
-    )
+    log_level: Annotated[
+        LogLevelType,
+        Field(description="Minimum log severity level to capture."),
+    ] = "INFO"
     json_logs: bool = Field(
         default=False,
         description="Render logs as JSON strings (True for production/Kubernetes, False for local console).",
@@ -169,10 +170,17 @@ class CORSSettings(BaseModel):
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str]) -> list[str]:
         """Parse comma-separated strings or JSON arrays into a list of origins."""
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",") if i.strip()]
-        elif isinstance(v, (list, str)):
-            return v
+        if isinstance(v, str):
+            if not v.startswith("["):
+                return [i.strip() for i in v.split(",") if i.strip()]
+            import json
+
+            parsed = json.loads(v)
+            if isinstance(parsed, list):
+                return [str(item) for item in parsed]
+            return [str(parsed)]
+        elif isinstance(v, list):
+            return [str(item) for item in v]
         raise ValueError(f"Invalid CORS allow_origins format: {v}")
 
 
@@ -195,7 +203,7 @@ class Settings(BaseSettings):
         env_file=(
             ".env",
             f".env.{os.getenv('APP_ENV', 'development').lower()}",
-            f".env.local",
+            ".env.local",
         ),
         env_nested_delimiter="__",
         case_sensitive=False,
@@ -205,7 +213,7 @@ class Settings(BaseSettings):
     @field_validator("security")
     @classmethod
     def validate_production_security(
-        cls, v: SecuritySettings, info: any
+        cls, v: SecuritySettings, info: Any
     ) -> SecuritySettings:
         """Prevent launching in production with default/insecure secret keys."""
         return v

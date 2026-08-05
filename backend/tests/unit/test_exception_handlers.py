@@ -1,10 +1,10 @@
 """Unit tests for centralized exception handlers and standard error envelopes."""
 
+import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from pydantic import BaseModel, Field
-import pytest
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import IntegrityError
 
 from app.exceptions import (
     BaseAppException,
@@ -12,7 +12,6 @@ from app.exceptions import (
     NotFoundException,
     RateLimitExceededException,
     UnauthorizedException,
-    ValidationException,
     register_exception_handlers,
 )
 
@@ -29,7 +28,7 @@ def test_app() -> FastAPI:
     register_exception_handlers(app)
 
     @app.get("/test/base-app-exception")
-    def trigger_base_app_exception():
+    def trigger_base_app_exception() -> None:
         raise BaseAppException(
             message="Custom failure occurred.",
             error_code="CUSTOM_FAILURE",
@@ -38,34 +37,34 @@ def test_app() -> FastAPI:
         )
 
     @app.get("/test/not-found")
-    def trigger_not_found():
+    def trigger_not_found() -> None:
         raise NotFoundException(
             resource_name="Investigation",
             identifier="inv-uuid-1049",
         )
 
     @app.get("/test/conflict")
-    def trigger_conflict():
+    def trigger_conflict() -> None:
         raise ConflictException("Investigation session already active.")
 
     @app.get("/test/unauthorized")
-    def trigger_unauthorized():
+    def trigger_unauthorized() -> None:
         raise UnauthorizedException("Invalid JWT token provided.")
 
     @app.get("/test/rate-limit")
-    def trigger_rate_limit():
+    def trigger_rate_limit() -> None:
         raise RateLimitExceededException(retry_after_seconds=45)
 
     @app.get("/test/http-exception")
-    def trigger_http_exception():
+    def trigger_http_exception() -> None:
         raise HTTPException(status_code=403, detail="Forbidden operational zone.")
 
     @app.post("/test/validation")
-    def trigger_validation(payload: SamplePayload):
+    def trigger_validation(payload: SamplePayload) -> dict[str, str]:
         return {"status": "ok", "received": payload.title}
 
     @app.get("/test/integrity-error")
-    def trigger_integrity_error():
+    def trigger_integrity_error() -> None:
         raise IntegrityError(
             statement="INSERT INTO ...",
             params={},
@@ -73,7 +72,7 @@ def test_app() -> FastAPI:
         )
 
     @app.get("/test/unhandled-500")
-    def trigger_unhandled_500():
+    def trigger_unhandled_500() -> None:
         raise ZeroDivisionError("division by zero in calculation")
 
     return app

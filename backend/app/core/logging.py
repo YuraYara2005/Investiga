@@ -7,9 +7,9 @@ sensitive data redaction, and environment-driven formatting (colored console for
 local development vs. high-throughput structured JSON for production/Kubernetes).
 """
 
-from collections.abc import MutableMapping
 import logging
 import sys
+from collections.abc import MutableMapping
 from typing import Any
 
 import structlog

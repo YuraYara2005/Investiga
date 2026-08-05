@@ -5,8 +5,9 @@ error responses emitted across the Investiga REST API. It guarantees a determini
 machine-readable JSON contract for frontend and API consumers.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
+
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -34,7 +35,7 @@ class ErrorDetail(BaseModel):
         examples=["req-7a9b-4c2d-98e1"],
     )
     timestamp: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat(),
+        default_factory=lambda: datetime.now(UTC).isoformat(),
         description="ISO 8601 UTC timestamp when the error occurred.",
         examples=["2026-08-05T01:30:00.000000Z"],
     )
@@ -81,7 +82,7 @@ def create_error_response(
             message=message,
             details=details or {},
             trace_id=trace_id,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
         ),
     )
 

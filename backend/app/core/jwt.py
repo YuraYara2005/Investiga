@@ -4,9 +4,9 @@ This module provides cryptographic token issuance, decoding, signature validatio
 and expiration enforcement using Python-Jose and Pydantic Settings.
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import Any
 import uuid
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from jose import ExpiredSignatureError, JWTError, jwt
 
@@ -44,7 +44,7 @@ def create_token(
     if settings is None:
         settings = get_settings()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if expires_delta is not None:
         expire = now + expires_delta

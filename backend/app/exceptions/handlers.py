@@ -6,7 +6,7 @@ consistent, schema-compliant JSON error envelopes while preserving full diagnost
 telemetry in Structlog.
 """
 
-from typing import Any
+from typing import Any, cast
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -93,7 +93,7 @@ async def http_exception_handler(
 
     if isinstance(exc.detail, dict):
         message = exc.detail.get("message", "An HTTP error occurred.")
-        details = exc.detail.get("details", exc.detail)
+        details: dict[str, Any] = exc.detail.get("details", exc.detail)
     else:
         message = str(exc.detail) if exc.detail else "An HTTP error occurred."
         details = {}
@@ -114,7 +114,7 @@ async def http_exception_handler(
         message=message,
         details=details,
         trace_id=trace_id,
-        headers=exc.headers,
+        headers=dict(exc.headers) if exc.headers else None,
     )
 
 
@@ -129,16 +129,15 @@ async def validation_exception_handler(
         field = ".".join(str(loc) for loc in error.get("loc", []))
         formatted_errors.append(
             {
-                "field": field,
-                "message": error.get("msg", "Invalid value"),
-                "type": error.get("type", "validation_error"),
+                "field": field or "payload",
+                "message": error.get("msg", "Validation error"),
+                "type": error.get("type", "value_error"),
             }
         )
 
     logger.warning(
-        "request_validation_failed",
-        error_count=len(formatted_errors),
-        errors=formatted_errors,
+        "validation_error_handled",
+        errors_count=len(formatted_errors),
         path=str(request.url.path),
         method=request.method,
         trace_id=trace_id,
@@ -210,9 +209,9 @@ async def unhandled_exception_handler(
 
 def register_exception_handlers(app: FastAPI) -> None:
     """Register all centralized exception handlers onto the FastAPI application instance."""
-    app.add_exception_handler(BaseAppException, app_exception_handler)
-    app.add_exception_handler(StarletteHTTPException, http_exception_handler)
-    app.add_exception_handler(RequestValidationError, validation_exception_handler)
-    app.add_exception_handler(ValidationError, validation_exception_handler)
-    app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
-    app.add_exception_handler(Exception, unhandled_exception_handler)
+    app.add_exception_handler(BaseAppException, cast(Any, app_exception_handler))
+    app.add_exception_handler(StarletteHTTPException, cast(Any, http_exception_handler))
+    app.add_exception_handler(RequestValidationError, cast(Any, validation_exception_handler))
+    app.add_exception_handler(ValidationError, cast(Any, validation_exception_handler))
+    app.add_exception_handler(SQLAlchemyError, cast(Any, sqlalchemy_exception_handler))
+    app.add_exception_handler(Exception, cast(Any, unhandled_exception_handler))

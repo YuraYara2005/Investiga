@@ -6,6 +6,7 @@ recycling, and lifecycle management for clean startup validation and graceful sh
 """
 
 from functools import lru_cache
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 

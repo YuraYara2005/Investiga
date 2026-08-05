@@ -6,6 +6,7 @@ inherit from these classes to represent domain rule violations cleanly.
 """
 
 from typing import Any
+
 from app.exceptions.base import BaseAppException
 
 
