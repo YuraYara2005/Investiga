@@ -18,9 +18,7 @@ class IdentityValidators:
     """Encapsulates reusable domain validation assertions for identity operations."""
 
     @staticmethod
-    async def ensure_email_is_available(
-        user_repo: IUserRepository, email: str
-    ) -> None:
+    async def ensure_email_is_available(user_repo: IUserRepository, email: str) -> None:
         """Verify that an email address is not already registered to an active account.
 
         Args:

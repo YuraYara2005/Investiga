@@ -1,0 +1,15 @@
+{
+    "id": "redis_py",
+    "type": "client",
+    "name": "redis-py",
+    "language": "Python",
+    "label": "Python",
+    "repository": {
+        "git_uri": "https://github.com/redis/redis-py"
+    },
+    "examples": {
+        "git_uri": "https://github.com/redis/redis-py",
+        "path": "doctests",
+        "pattern": "*.py"
+    }
+}

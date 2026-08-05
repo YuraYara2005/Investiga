@@ -8,6 +8,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.health import router as health_router
+from app.api.v1.endpoints.knowledge import router as knowledge_router
 
 api_v1_router = APIRouter()
 
@@ -22,11 +23,6 @@ api_v1_router.include_router(health_router, prefix="")
 api_v1_router.include_router(auth_router, prefix="")
 
 # ------------------------------------------------------------------------------
-# Future Business Domain Routes (Phase 2+ / Phase 3+)
+# Knowledge Management Endpoints
 # ------------------------------------------------------------------------------
-# api_v1_router.include_router(users_router, prefix="/users", tags=["Users & RBAC"])
-# api_v1_router.include_router(investigations_router, prefix="/investigations", tags=["Investigations"])
-# api_v1_router.include_router(knowledge_router, prefix="/knowledge", tags=["Knowledge Base"])
-# api_v1_router.include_router(search_router, prefix="/search", tags=["Hybrid Search & Retrieval"])
-# api_v1_router.include_router(analytics_router, prefix="/analytics", tags=["Analytics & Telemetry"])
-# api_v1_router.include_router(evaluation_router, prefix="/evaluation", tags=["RAG & LLM Evaluation"])
+api_v1_router.include_router(knowledge_router, prefix="")

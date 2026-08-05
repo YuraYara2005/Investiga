@@ -30,7 +30,10 @@ def test_user_model_instantiation_and_defaults() -> None:
     assert user.tenant_id is None
     assert user.last_login_at is None
     assert isinstance(user.id, uuid.UUID) or user.id is None
-    assert repr(user) == "<User id=None email='analyst@investiga.internal' active=True superuser=False>"
+    assert (
+        repr(user)
+        == "<User id=None email='analyst@investiga.internal' active=True superuser=False>"
+    )
 
 
 def test_role_model_instantiation_and_defaults() -> None:

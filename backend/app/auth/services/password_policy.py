@@ -49,16 +49,24 @@ class PasswordPolicy:
         violations: list[str] = []
 
         if len(password) < self.min_length:
-            violations.append(f"Password must be at least {self.min_length} characters long.")
+            violations.append(
+                f"Password must be at least {self.min_length} characters long."
+            )
 
         if self.require_uppercase and not any(c.isupper() for c in password):
-            violations.append("Password must contain at least one uppercase letter (A-Z).")
+            violations.append(
+                "Password must contain at least one uppercase letter (A-Z)."
+            )
 
         if self.require_lowercase and not any(c.islower() for c in password):
-            violations.append("Password must contain at least one lowercase letter (a-z).")
+            violations.append(
+                "Password must contain at least one lowercase letter (a-z)."
+            )
 
         if self.require_digits and not any(c.isdigit() for c in password):
-            violations.append("Password must contain at least one numerical digit (0-9).")
+            violations.append(
+                "Password must contain at least one numerical digit (0-9)."
+            )
 
         if self.require_special:
             escaped_specials = re.escape(self.special_characters)

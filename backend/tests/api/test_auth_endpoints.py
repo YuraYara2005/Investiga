@@ -33,9 +33,9 @@ from app.api.dependencies import (
 )
 from app.auth.models import Permission, Role, User
 from app.auth.repositories import PermissionRepository, RoleRepository, UserRepository
-from app.core.config import Settings, get_settings
+from app.core.config import get_settings
 from app.core.password import async_get_password_hash
-from app.core.security import create_access_token, create_refresh_token
+from app.core.security import create_access_token
 from app.db.base import Base
 from app.main import create_app
 
@@ -174,9 +174,7 @@ async def test_app(
 async def async_client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     """Provide an asynchronous HTTP test client bound to the ASGI application."""
     transport = ASGITransport(app=test_app)
-    async with AsyncClient(
-        transport=transport, base_url="http://testserver"
-    ) as client:
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
         yield client
 
 

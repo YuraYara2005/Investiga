@@ -1,0 +1,58 @@
+<style>
+  @font-face {
+    font-family: 'Space Mono';
+    src: url('{{ relURL "fonts/SpaceMono-Regular.ttf" }}') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Space Mono';
+    src: url('{{ relURL "fonts/SpaceMono-Bold.ttf" }}') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Space Grotesk';
+    src: url('{{ relURL "fonts/SpaceGrotesk-VariableFont_wght.ttf" }}') format('truetype');
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'TT Trailers';
+    src: url('{{ relURL "fonts/TT_Trailers_Bold.woff2" }}') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Geist';
+    src: url('{{ relURL "fonts/Geist-Regular.woff2" }}') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Geist Mono';
+    src: url('{{ relURL "fonts/GeistMono-Regular.woff2" }}') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  
+</style>
+
+{{/* Todo: Could probably delete old font files?  */}}
+<link rel="preload" href='{{ relURL "fonts/SpaceMono-Regular.ttf" }}' as="font" type="font/ttf" crossorigin />
+<link rel="preload" href='{{ relURL "fonts/SpaceMono-Bold.ttf" }}' as="font" type="font/ttf" crossorigin />
+<link rel="preload" href='{{ relURL "fonts/SpaceGrotesk-VariableFont_wght.ttf" }}' as="font" type="font/ttf" crossorigin />
+<link rel="preload" href='{{ relURL "fonts/TT_Trailers_Bold.woff2" }}' as="font" type="font/woff2" crossorigin />
+<link rel="preload" href='{{ relURL "fonts/Geist-Regular.woff2" }}' as="font" type="font/woff2" crossorigin />
+<link rel="preload" href='{{ relURL "fonts/GeistMono-Regular.woff2" }}' as="font" type="font/woff2" crossorigin />
+

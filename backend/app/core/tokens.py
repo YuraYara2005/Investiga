@@ -31,7 +31,9 @@ class TokenPayload(BaseModel):
     """
 
     sub: str = Field(..., description="Subject unique identifier (User UUID).")
-    jti: str = Field(..., description="Unique JWT ID for replay prevention and revocation.")
+    jti: str = Field(
+        ..., description="Unique JWT ID for replay prevention and revocation."
+    )
     token_type: TokenType = Field(
         ..., description="Token discriminator ('access' or 'refresh')."
     )
@@ -55,7 +57,9 @@ class TokenPair(BaseModel):
 
     access_token: str = Field(..., description="Short-lived bearer access token.")
     refresh_token: str = Field(..., description="Long-lived bearer refresh token.")
-    token_type: str = Field(default="bearer", description="OAuth2 authorization scheme.")
+    token_type: str = Field(
+        default="bearer", description="OAuth2 authorization scheme."
+    )
     expires_in: int = Field(
         ..., description="Access token lifespan remaining in seconds."
     )

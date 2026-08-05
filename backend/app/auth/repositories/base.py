@@ -150,9 +150,7 @@ class BaseRepository(Generic[ModelType]):
             return bool(cursor_result.rowcount and cursor_result.rowcount > 0)
         else:
             # Perform permanent hard delete
-            delete_stmt = sa_delete(self._model_cls).where(
-                self._model.id == entity_id
-            )
+            delete_stmt = sa_delete(self._model_cls).where(self._model.id == entity_id)
             result = await self._session.execute(delete_stmt)
             await self._session.flush()
             cursor_result = cast(CursorResult[Any], result)

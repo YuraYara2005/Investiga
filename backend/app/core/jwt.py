@@ -49,9 +49,7 @@ def create_token(
     if expires_delta is not None:
         expire = now + expires_delta
     elif token_type == "access":
-        expire = now + timedelta(
-            minutes=settings.security.access_token_expire_minutes
-        )
+        expire = now + timedelta(minutes=settings.security.access_token_expire_minutes)
     else:  # refresh
         expire = now + timedelta(days=settings.security.refresh_token_expire_days)
 

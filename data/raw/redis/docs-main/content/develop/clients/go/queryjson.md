@@ -1,0 +1,190 @@
+---
+categories:
+- docs
+- develop
+- stack
+- oss
+- rs
+- rc
+- oss
+- kubernetes
+- clients
+description: Learn how to use Redis Search with JSON and hash documents.
+linkTitle: Index and query documents
+title: Index and query documents
+scope: example
+relatedPages:
+- /develop/clients/go/vecsearch
+- /develop/ai/search-and-query
+topics:
+- Redis Search
+- JSON
+- hash
+weight: 20
+---
+
+This example shows how to create a
+[search index]({{< relref "/develop/ai/search-and-query/indexing" >}})
+for [JSON]({{< relref "/develop/data-types/json" >}}) documents and
+run queries against the index. It then goes on to show the slight differences
+in the equivalent code for [hash]({{< relref "/develop/data-types/hashes" >}})
+documents.
+
+{{< note >}}From [v9.8.0](https://github.com/redis/go-redis/releases/tag/v9.8.0) onwards,
+`go-redis` uses query dialect 2 by default.
+Redis Search methods such as [`FTSearch()`]({{< relref "/commands/ft.search" >}})
+will explicitly request this dialect, overriding the default set for the server.
+See
+[Query dialects]({{< relref "/develop/ai/search-and-query/advanced-concepts/dialects" >}})
+for more information.
+{{< /note >}}
+
+## Initialize
+
+Make sure that you have [Redis Open Source]({{< relref "/operate/oss_and_stack/" >}})
+or another Redis server available. Also install the
+[`go-redis`]({{< relref "/develop/clients/go" >}}) client library if you
+haven't already done so.
+
+Add the following dependencies:
+
+{{< clients-example set="go_home_json" step="import" description="Foundational: Import go-redis package, which includes support for Redis Search operations" difficulty="beginner" >}}
+{{< /clients-example >}}
+
+## Create data
+
+Create some test data to add to your database. The example data shown
+below is compatible with both JSON and hash objects.
+
+{{< clients-example set="go_home_json" step="create_data" description="Foundational: Create sample user data structures for indexing and querying" difficulty="beginner" >}}
+{{< /clients-example >}}
+
+## Add the index
+
+Connect to your Redis database. The code below shows the most
+basic connection but see
+[Connect to the server]({{< relref "/develop/clients/go/connect" >}})
+to learn more about the available connection options.
+
+{{< clients-example set="go_home_json" step="connect" description="Foundational: Establish a connection to Redis with RESP2 protocol for Redis Search operations" difficulty="beginner" >}}
+{{< /clients-example >}}
+
+{{< note >}}The connection options in the example specify
+[RESP2]({{< relref "/develop/reference/protocol-spec" >}}) in the `Protocol`
+field. We recommend that you use RESP2 for Redis Search operations in `go-redis`
+because some of the response structures for the default RESP3 are currently
+incomplete and so you must handle the "raw" responses in your own code.
+
+If you do want to use RESP3, you should set the `UnstableResp3` option when
+you connect:
+
+```go
+rdb := redis.NewClient(&redis.Options{
+    UnstableResp3: true,
+    // Other options...
+})
+```
+
+You must also access command results using the `RawResult()` and `RawVal()` methods
+rather than the usual `Result()` and `Val()`:
+
+```go
+res1, err := client.FTSearchWithArgs(
+    ctx, "txt", "foo bar", &redis.FTSearchOptions{},
+).RawResult()
+val1 := client.FTSearchWithArgs(
+    ctx, "txt", "foo bar", &redis.FTSearchOptions{},
+).RawVal()
+```
+{{< /note >}}
+
+Use the code below to create a search index. The `FTCreateOptions` parameter enables
+indexing only for JSON objects where the key has a `user:` prefix.
+The
+[schema]({{< relref "/develop/ai/search-and-query/indexing" >}})
+for the index has three fields for the user's name, age, and city.
+The `FieldName` field of the `FieldSchema` struct specifies a
+[JSON path]({{< relref "/develop/data-types/json/path" >}})
+that identifies which data field to index. Use the `As` struct field
+to provide an alias for the JSON path expression. You can use
+the alias in queries as a short and intuitive way to refer to the
+expression, instead of typing it in full:
+
+{{< clients-example set="go_home_json" step="make_index" description="Foundational: Create a search index for JSON documents with field definitions and key prefix filtering" difficulty="beginner" >}}
+{{< /clients-example >}}
+
+## Add the data
+
+Add the three sets of user data to the database as
+[JSON]({{< relref "/develop/data-types/json" >}}) objects.
+If you use keys with the `user:` prefix then Redis will index the
+objects automatically as you add them:
+
+{{< clients-example set="go_home_json" step="add_data" description="Foundational: Store JSON documents with automatic indexing using JSONSet with matching key prefix" difficulty="beginner" >}}
+{{< /clients-example >}}
+
+## Query the data
+
+You can now use the index to search the JSON objects. The
+[query]({{< relref "/develop/ai/search-and-query/query" >}})
+below searches for objects that have the text "Paul" in any field
+and have an `age` value in the range 30 to 40:
+
+{{< clients-example set="go_home_json" step="query1" description="Query data: Execute a full-text search with numeric range filtering using FTSearchWithArgs" difficulty="intermediate" >}}
+{{< /clients-example >}}
+
+Specify query options to return only the `city` field:
+
+{{< clients-example set="go_home_json" step="query2" description="Restrict query results: Limit query results to specific fields using FTSearchOptions to reduce data transfer" difficulty="intermediate" >}}
+{{< /clients-example >}}
+
+You can also use the same query with the `CountOnly` option
+enabled to get the number of documents found without
+returning the documents themselves.
+
+{{< clients-example set="go_home_json" step="query2count_only" description="Performance optimization: Get document count without retrieving results using CountOnly option for better performance" difficulty="intermediate" >}}
+{{< /clients-example >}}
+
+Use an
+[aggregation query]({{< relref "/develop/ai/search-and-query/query/aggregation" >}})
+to count all users in each city.
+
+{{< clients-example set="go_home_json" step="query3" description="Aggregation: Perform aggregation queries to group and count documents by field values using FTAggregateWithArgs" difficulty="intermediate" >}}
+{{< /clients-example >}}
+
+## Differences with hash documents
+
+Indexing for hash documents is very similar to JSON indexing but you
+need to specify some slightly different options.
+
+When you create the schema for a hash index, you don't need to
+add aliases for the fields, since you use the basic names to access
+the fields anyway. Also, you must set `OnHash` to `true` in the `FTCreateOptions`
+object when you create the index. The code below shows these changes with
+a new index called `hash-idx:users`, which is otherwise the same as
+the `idx:users` index used for JSON documents in the previous examples.
+
+{{< clients-example set="go_home_json" step="make_hash_index" description="Foundational: Create a search index for hash documents with OnHash option and simplified field schema" difficulty="intermediate" >}}
+{{< /clients-example >}}
+
+You use [`HSet()`]({{< relref "/commands/hset" >}}) to add the hash
+documents instead of [`JSONSet()`]({{< relref "/commands/json.set" >}}),
+but the same flat `userX` maps work equally well with either
+hash or JSON:
+
+{{< clients-example set="go_home_json" step="add_hash_data" description="Foundational: Store hash documents with automatic indexing using HSet with matching key prefix" difficulty="beginner" >}}
+{{< /clients-example >}}
+
+The query commands work the same here for hash as they do for JSON (but
+the name of the hash index is different). The format of the result is
+almost the same except that the fields are returned directly in the
+`Document` object map of the result (for JSON, the fields are all enclosed
+in a string under the key "$"):
+
+{{< clients-example set="go_home_json" step="query1_hash" description="Query data: Execute search queries on hash documents with slightly different result structure compared to JSON" difficulty="intermediate" >}}
+{{< /clients-example >}}
+
+## More information
+
+See the [Redis Search]({{< relref "/develop/ai/search-and-query" >}}) docs
+for a full description of all query features with examples.

@@ -65,5 +65,12 @@ module = [
     "jose.*",
     "passlib.*",
     "structlog.*",
+    "fitz.*",
+    "sentence_transformers.*",
+    "torch.*",
+    "transformers.*",
+    "qdrant_client.*",
+    "grpc.*",
 ]
 ignore_missing_imports = true
+

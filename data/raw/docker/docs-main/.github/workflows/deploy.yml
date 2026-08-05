@@ -1,0 +1,135 @@
+name: deploy
+# Deploys the Docker Docs website when merging to the `main` branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - lab
+
+env:
+  # Use edge release of buildx (latest RC, fallback to latest stable)
+  SETUP_BUILDX_VERSION: edge
+  SETUP_BUILDKIT_IMAGE: "moby/buildkit:latest"
+
+# these permissions are needed to interact with GitHub's OIDC Token endpoint.
+permissions:
+  id-token: write
+  contents: read
+
+# The `main` branch is deployed to the production environment.
+# The `lab` branch is deployed to a separate environment for testing purposes.
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    if: github.repository_owner == 'docker'
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+      -
+        name: Set environment variables
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          INPUT_GITHUB-REF: ${{ github.ref }}
+        with:
+          script: |
+            const fs = require('fs');
+            const env = JSON.parse(fs.readFileSync('hack/releaser/env.json', 'utf8'));
+            const ref = core.getInput('github-ref');
+            if (!env.hasOwnProperty(ref)) {
+              core.setFailed(`ERROR: unknown branch ${ref}`);
+            }
+            for (const [key, value] of Object.entries(env[ref])) {
+              core.exportVariable(key, value);
+              core.info(`${key}=${value}`);
+            }
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+        with:
+          version: ${{ env.SETUP_BUILDX_VERSION }}
+          driver-opts: image=${{ env.SETUP_BUILDKIT_IMAGE }}
+      -
+        name: Build website
+        uses: docker/bake-action@82490499d2e5613fcead7e128237ef0b0ea210f7 # v7
+        with:
+          source: .
+          files: |
+            docker-bake.hcl
+          targets: release
+          provenance: false
+      -
+        name: Configure AWS Credentials
+        if: ${{ env.DOCS_AWS_IAM_ROLE != '' }}
+        uses: aws-actions/configure-aws-credentials@d979d5b3a71173a29b74b5b88418bfda9437d885 # v6.1.1
+        with:
+          role-to-assume: ${{ env.DOCS_AWS_IAM_ROLE }}
+          aws-region: ${{ env.DOCS_AWS_REGION }}
+      -
+        name: Upload files to S3 bucket
+        if: ${{ env.DOCS_S3_BUCKET != '' }}
+        run: |
+          aws --region ${{ env.DOCS_AWS_REGION }} s3 sync \
+            --delete \
+            --exclude "*" \
+            --include "*.webp" \
+            --metadata-directive="REPLACE" \
+            --no-guess-mime-type \
+            --content-type="image/webp" \
+            public s3://${{ env.DOCS_S3_BUCKET }}/
+          aws --region ${{ env.DOCS_AWS_REGION }} s3 sync \
+            --delete \
+            --exclude "*.webp" \
+            --exclude "pagefind/*.pf_meta" \
+            --exclude "pagefind/fragment/*.pf_fragment" \
+            public s3://${{ env.DOCS_S3_BUCKET }}/
+      -
+        name: Upload pagefind files with compression headers
+        if: ${{ env.DOCS_S3_BUCKET != '' }}
+        run: |
+          aws --region ${{ env.DOCS_AWS_REGION }} s3 cp \
+            --recursive \
+            --content-encoding="gzip" \
+            --content-type="application/octet-stream" \
+            --metadata-directive="REPLACE" \
+            public/pagefind/ s3://${{ env.DOCS_S3_BUCKET }}/pagefind/ \
+            --exclude "*" \
+            --include "*.pf_meta" \
+            --include "*.pf_fragment"
+      -
+        name: Set markdown Content-Type on llms.txt
+        if: ${{ env.DOCS_S3_BUCKET != '' }}
+        run: |
+          aws --region ${{ env.DOCS_AWS_REGION }} s3 cp \
+            s3://${{ env.DOCS_S3_BUCKET }}/llms.txt \
+            s3://${{ env.DOCS_S3_BUCKET }}/llms.txt \
+            --content-type="text/markdown" \
+            --metadata-directive="REPLACE"
+      -
+        name: Update Cloudfront config
+        if: ${{ env.DOCS_CLOUDFRONT_ID != '' }}
+        uses: docker/bake-action@82490499d2e5613fcead7e128237ef0b0ea210f7 # v7
+        with:
+          source: .
+          files: |
+            docker-bake.hcl
+          targets: aws-cloudfront-update
+        env:
+          AWS_REGION: us-east-1 # cloudfront and lambda edge functions are only available in us-east-1 region
+          AWS_CLOUDFRONT_ID: ${{ env.DOCS_CLOUDFRONT_ID }}
+          AWS_LAMBDA_FUNCTION: ${{ env.DOCS_LAMBDA_FUNCTION_REDIRECTS }}
+      -
+        name: Invalidate Cloudfront cache
+        if: ${{ env.DOCS_CLOUDFRONT_ID != '' }}
+        run: |
+          aws cloudfront create-invalidation --distribution-id ${{ env.DOCS_CLOUDFRONT_ID }} --paths "/*"
+        env:
+          AWS_REGION: us-east-1 # cloudfront is only available in us-east-1 region
+          AWS_MAX_ATTEMPTS: 5

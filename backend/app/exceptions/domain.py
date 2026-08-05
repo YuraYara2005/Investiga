@@ -34,7 +34,9 @@ class NotFoundException(BaseAppException):
     ) -> None:
         if message is None and resource_name:
             if identifier is not None:
-                message = f"{resource_name} with identifier '{identifier}' was not found."
+                message = (
+                    f"{resource_name} with identifier '{identifier}' was not found."
+                )
             else:
                 message = f"{resource_name} was not found."
         super().__init__(
@@ -50,7 +52,9 @@ class ConflictException(BaseAppException):
 
     status_code: int = 409
     error_code: str = "RESOURCE_CONFLICT"
-    message: str = "A conflicting resource already exists or the entity is in a conflicting state."
+    message: str = (
+        "A conflicting resource already exists or the entity is in a conflicting state."
+    )
 
 
 class ValidationException(BaseAppException):

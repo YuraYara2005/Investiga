@@ -25,7 +25,9 @@ class RoleSpecification(TypedDict):
     display_name: str
     description: str
     is_system_role: bool
-    permission_codes: list[str] | None  # None indicates dynamic wildcard (all permissions)
+    permission_codes: (
+        list[str] | None
+    )  # None indicates dynamic wildcard (all permissions)
 
 
 # ------------------------------------------------------------------------------

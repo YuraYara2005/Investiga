@@ -15,8 +15,8 @@ pwd_context = CryptContext(
     schemes=["argon2", "bcrypt"],
     deprecated="auto",
     argon2__memory_cost=65536,  # 64 MB memory hardness
-    argon2__time_cost=3,        # 3 iterations
-    argon2__parallelism=4,      # 4 parallel threads
+    argon2__time_cost=3,  # 3 iterations
+    argon2__parallelism=4,  # 4 parallel threads
 )
 
 

@@ -73,11 +73,7 @@ class UserRepository(BaseRepository[User]):
         Returns:
             User | None: User entity with loaded `roles` collection.
         """
-        stmt = (
-            select(User)
-            .where(User.id == user_id)
-            .options(selectinload(User.roles))
-        )
+        stmt = select(User).where(User.id == user_id).options(selectinload(User.roles))
         if not include_deleted:
             stmt = stmt.where(User.is_deleted.is_(False))
 
@@ -99,9 +95,7 @@ class UserRepository(BaseRepository[User]):
         stmt = (
             select(User)
             .where(User.id == user_id)
-            .options(
-                selectinload(User.roles).selectinload(Role.permissions)
-            )
+            .options(selectinload(User.roles).selectinload(Role.permissions))
         )
         if not include_deleted:
             stmt = stmt.where(User.is_deleted.is_(False))
@@ -126,9 +120,7 @@ class UserRepository(BaseRepository[User]):
         stmt = (
             select(User)
             .where(func.lower(User.email) == email.strip().lower())
-            .options(
-                selectinload(User.roles).selectinload(Role.permissions)
-            )
+            .options(selectinload(User.roles).selectinload(Role.permissions))
         )
         if not include_deleted:
             stmt = stmt.where(User.is_deleted.is_(False))
@@ -169,7 +161,9 @@ class UserRepository(BaseRepository[User]):
             tuple[Sequence[User], int]: Tuple containing the list of users and total count.
         """
         base_stmt = select(User).where(User.is_deleted.is_(False))
-        count_stmt = select(func.count()).select_from(User).where(User.is_deleted.is_(False))
+        count_stmt = (
+            select(func.count()).select_from(User).where(User.is_deleted.is_(False))
+        )
 
         if query:
             search_filter = or_(

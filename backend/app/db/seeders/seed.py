@@ -133,7 +133,9 @@ async def run_cli() -> None:
             print("==================================================")
             print(f"  * Permissions Active: {summary['permissions_count']}")
             print(f"  * Roles Active:       {summary['roles_count']}")
-            print(f"  * Admin Principal:    {summary['admin_email']} ({summary['admin_id']})")
+            print(
+                f"  * Admin Principal:    {summary['admin_email']} ({summary['admin_id']})"
+            )
             print("==================================================\n")
     except Exception as err:
         print(f"\n[ERROR] Database seeding failed: {err}", file=sys.stderr)

@@ -1,0 +1,37 @@
+{
+    "id": "index",
+    "name": "All",
+    "description": "Use this file to add components that represent external resources. An empty array means that the component type is no longer fetched from an external repo.",
+    "type": "stack",
+    "core": [],
+    "docs": [],
+    "modules": [],
+    "clients": [
+        "nredisstack_sync",
+        "nredisstack_async",
+        "seredis_sync",
+        "seredis_async",
+        "go_redis",
+        "node_redis",
+        "ioredis",
+        "php",
+        "redis_py",
+        "jedis",
+        "lettuce_sync",
+        "lettuce_async",
+        "lettuce_reactive",
+        "redis_vl",
+        "redis_rs_sync",
+        "redis_rs_async",
+        "hi_redis",
+        "redis_rb"
+    ],
+    "assets": [],
+    "website": {
+        "path": "./",
+        "content": "content/",
+        "examples": "data/examples.json",
+        "examples_path": "examples",
+        "commands": "data/commands.json"
+    }
+}

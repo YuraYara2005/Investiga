@@ -1,0 +1,29 @@
+{{/*  Long page titles cause issue with wrapping  */}}
+<nav class="flex text-redis-ink-900 text-xs font-mono font-normal" aria-label="Breadcrumb"> 
+  <ol role="list" class="flex items-center">
+    {{ template "breadcrumb_navigation" (dict "p1" . "p2" .) }}
+  </ol>
+</nav>
+
+{{ define "breadcrumb_navigation" }}
+  {{ if .p1.Parent }}
+    {{ template "breadcrumb_navigation" (dict "p1" .p1.Parent "p2" .p2 )  }}
+  {{ else if not .p1.IsHome }}
+    {{ template "breadcrumb_navigation" (dict "p1" .p1.Site.Home "p2" .p2 )  }}
+  {{ end }}
+  <li class="flex items-center {{ if eq .p1 .p2 }} pointer-events-none{{ end }}">
+    {{ if .p1.Parent }}
+      <span class="px-2">→</span>
+      <a class="hover:text-redis-red-500" href="{{ .p1.RelPermalink }}">
+        {{ .p1.Title }}
+      </a>
+    {{ else }}
+      <a class="hover:text-redis-red-500" href="{{ .p1.RelPermalink }}">
+        <!--<span>↑ Docs</span>-->
+        <!--<span class="sr-only">↑ Docs</span>-->
+        <span>Docs</span>
+        <span class="sr-only">Docs</span>
+      </a>
+    {{ end }}
+  </li>
+{{ end }}

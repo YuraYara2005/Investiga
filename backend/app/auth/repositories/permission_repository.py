@@ -65,9 +65,7 @@ class PermissionRepository(BaseRepository[Permission]):
         result = await self._session.execute(stmt)
         return result.scalar_one() > 0
 
-    async def bulk_create(
-        self, permissions: list[Permission]
-    ) -> Sequence[Permission]:
+    async def bulk_create(self, permissions: list[Permission]) -> Sequence[Permission]:
         """Persist a batch of permission entities during system initialization or seeding.
 
         Args:

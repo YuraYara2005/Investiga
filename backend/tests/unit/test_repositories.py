@@ -104,8 +104,12 @@ async def test_user_repository_eager_loading_roles_and_permissions(
     perm_repo = PermissionRepository(session=db_session)
 
     # 1. Create permissions
-    p1 = Permission(code="investigations:create", resource="investigations", action="create")
-    p2 = Permission(code="investigations:read", resource="investigations", action="read")
+    p1 = Permission(
+        code="investigations:create", resource="investigations", action="create"
+    )
+    p2 = Permission(
+        code="investigations:read", resource="investigations", action="read"
+    )
     await perm_repo.bulk_create([p1, p2])
 
     # 2. Create role with permissions

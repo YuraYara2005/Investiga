@@ -1,0 +1,13 @@
+# Auto-detect text files, ensure they use LF.
+* text=auto eol=lf
+
+# Fine-tune GitHub's language detection
+content/**/*.md linguist-detectable
+
+# Mark generated and vendored content
+# These files should not be edited directly in this repository
+
+# Vendored Hugo modules (from upstream repositories)
+/_vendor/** linguist-generated=true
+# Generated CLI reference data (vendored from upstream)
+/data/cli/** linguist-generated=true

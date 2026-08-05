@@ -17,7 +17,6 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.auth.models import Permission, Role, User
-from app.core.config import Settings
 from app.core.security import verify_password
 from app.db.base import Base
 from app.db.seeders import (

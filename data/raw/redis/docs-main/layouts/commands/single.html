@@ -1,0 +1,124 @@
+{{ define "head" }}
+  <script src='{{ relURL "js/cli.js" }}' defer></script>
+  <script src='{{ relURL "js/codetabs.js" }}' defer></script>
+{{ end }}
+
+{{ define "main" }}
+  {{ $isModule := isset .Params "module" }}
+  {{ $component := cond $isModule .Params.module "Redis" }}
+  <main class="docs w-full max-w-[1920px] mx-auto px-5 flex flex-col md:flex-row overflow-hidden">
+    {{ partial "docs-nav.html" . }}
+    <div class="w-full py-12 md:pl-4 xl:px-16 overflow-hidden">
+      {{ partial "breadcrumbs" . }}
+      <section class="prose w-full py-12">
+        <h1 class="command-name">
+          <div class="command-title-deprecated">
+            {{- .Title }}
+            {{- if (and (isset .Params "doc_flags") (in .Params.doc_flags "deprecated")) }}
+              <span class="deprecated-badge">Deprecated</span>
+            {{- end }}
+          </div>
+        </h1>
+        {{ if (isset .Params "deprecated_since") }}
+          <div class="border-l-8 pl-4">
+            <p>As of {{ $component }} version {{ .Params.deprecated_since }}, this command is regarded as deprecated.</p>
+            {{- if (isset .Params "replaced_by") }}
+            <p>It can be replaced by {{ .Params.replaced_by | markdownify }} when migrating or writing new code.</p>
+            {{- end }}
+          </div>
+        {{ end }}
+        {{ if .Params.bannerText }}
+          {{ partial "banner-article.html" . }}
+        {{ end }}
+        {{ $syntax := .Params.syntax_fmt }}
+        {{ if isset .Params "syntax" }}
+          {{ if .Params.syntax }}
+            {{ $syntax = .Params.syntax }}
+          {{ else }}
+            {{ $syntax = "" }}
+          {{ end }}
+        {{ end }}
+        {{ if (gt (len $syntax) 0) }}
+        {{ $railroad_path := printf "images/railroad/%s.svg" (.Title | lower | replaceRE " " "-") }}
+        {{ $railroad_file_path := printf "static/%s" $railroad_path }}
+        {{ if fileExists $railroad_file_path }}
+        {{/* Build API methods tab content */}}
+        {{ $apiMethodsContent := partial "components/api-methods-tab.html" (dict "commandName" .Title) }}
+        {{ $tabs := slice
+          (dict "title" "Syntax text" "content" (printf "<pre class=\"command-syntax\">%s</pre>" ($syntax | htmlEscape | replaceRE "\\\\_" "&nbsp;" | safeHTML)))
+          (dict "title" "Syntax diagram" "content" (printf "<div class=\"railroad-diagram-container bg-transparent p-4 overflow-x-auto text-center\"><img src=\"%s\" alt=\"Railroad diagram for %s\" class=\"max-w-none inline-block\" /></div>" ($railroad_path | relURL) .Title))
+          (dict "title" "API methods" "content" $apiMethodsContent)
+        }}
+        {{ partial "components/generic-tabs.html" (dict "id" "syntax-tabs" "tabs" $tabs) }}
+        {{ else }}
+        <div class="font-semibold text-redis-ink-900">Syntax</div>
+        <pre class="command-syntax">
+          {{- $syntax | htmlEscape | replaceRE "\\\\_" "&nbsp;" | safeHTML -}}
+        </pre>
+        {{ end }}
+        {{ end }}
+        <dl class="grid grid-cols-[auto,1fr] gap-2 mb-12">
+          {{ if not $isModule }}
+          <dt class="font-semibold text-redis-ink-900 m-0">Available since:</dt>
+          <dd class="m-0">Redis Open Source {{ .Params.since }}</dd>
+          {{ else }}
+          <dt class="font-semibold text-redis-ink-900 m-0">Available in:</dt>
+          <dd class="m-0">
+            Redis Open Source</a> / {{ .Params.module }} {{ .Params.since }}</a>
+          </dd>
+          {{ end }}
+          <dt class="font-semibold text-redis-ink-900 m-0">Time complexity:</dt>
+          <dd class="m-0">{{ replace .Params.complexity "*" "\\*" | markdownify }}</dd>
+          {{ if .Params.acl_categories }}
+          <dt class="font-semibold text-redis-ink-900 m-0">ACL categories:</dt>
+            <dd class="m-0">
+              {{ range .Params.acl_categories }}
+                {{ printf "`%s`<span class='mr-1 last:hidden'>,</span>" . | markdownify }}
+              {{ end}}
+            </dd>
+          {{ end }}
+          {{ if (findRE "## Redis Software and Redis Cloud compatibility" .RawContent) }}
+          <dt class="font-semibold text-redis-ink-900 m-0">Compatibility:</dt>
+          <dd class="m-0">
+            <a href="#redis-software-and-redis-cloud-compatibility" class="text-redis-red-500 hover:text-redis-red-600">Redis Software and Redis Cloud compatibility</a>
+          </dd>
+          {{ end }}
+        </dl>
+
+        {{ .Content }}
+
+
+        {{ if isset .Params "history" }}
+          <h2>History</h2>
+          <ul>
+            {{ range .Params.history }}
+            <li>Starting with Redis version {{ index . 0 }}: {{ index . 1 | markdownify }}</li>
+            {{ end }}
+          </ul>
+        {{ end }}
+
+        {{ partial "feedback.html" . }}
+      </section>
+    </div>
+
+    <aside class="hidden xl:block w-60 h-full shrink-0">
+      {{ $related := .Site.Pages.RelatedIndices . "group" | append . }}
+      {{ $related = (where $related ".Params.hidden" "!=" true) }}
+      {{ $this := . }}
+      {{ with sort $related "Title" }}
+      <dl class="w-60 z-40 hidden bg-white/75 md:block overflow-auto fixed top-28 h-full max-h-[calc(100vh-15rem)] text-[0.8125rem]">
+        {{ partial "meta-links.html" $this }}
+        <dt class="font-semibold my-3">
+          See also
+        </dt>
+        {{ range . }}
+          <dd>
+            <a class="block font-mono font-medium mb-2 {{- if eq $this . }} text-redis-red-500{{- end }} hover:text-redis-pen-600" href="{{ .RelPermalink }}">{{ .Title }}</a>
+          </dd>
+        {{ end }}
+      </dl>
+      {{ end }}
+    </aside>
+    {{ partial "scripts.html" . }}
+  </main>
+{{ end }}

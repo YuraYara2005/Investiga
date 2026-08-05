@@ -34,7 +34,9 @@ class RequestCorrelationAndLoggingMiddleware(BaseHTTPMiddleware):
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         # 1. Extract or generate unique correlation Request ID
-        request_id = request.headers.get("X-Request-ID") or f"req-{uuid.uuid4().hex[:12]}"
+        request_id = (
+            request.headers.get("X-Request-ID") or f"req-{uuid.uuid4().hex[:12]}"
+        )
         request.state.request_id = request_id
 
         # 2. Extract Client IP

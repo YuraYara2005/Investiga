@@ -60,9 +60,7 @@ class RedactSensitiveDataProcessor:
             elif isinstance(val, MutableMapping):
                 self._sanitize_mapping(val)
             elif isinstance(val, (list, tuple, set)):
-                data[key] = [
-                    self._sanitize_item(item) for item in val
-                ]
+                data[key] = [self._sanitize_item(item) for item in val]
 
     def _sanitize_item(self, item: Any) -> Any:
         if isinstance(item, MutableMapping):

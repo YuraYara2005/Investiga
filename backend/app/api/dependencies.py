@@ -7,7 +7,7 @@ guards (`get_current_user`, `get_current_active_user`, `require_roles`, `require
 
 import uuid
 from collections.abc import AsyncGenerator, Awaitable, Callable
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import structlog
 from fastapi import Depends, Header, Request
@@ -20,6 +20,10 @@ from app.core.config import Settings, get_settings
 from app.core.logging import get_logger
 from app.core.security import TokenPayload, decode_token
 from app.db.session import get_db_session
+
+if TYPE_CHECKING:
+    from app.knowledge import KnowledgeService
+    from app.storage import StorageService
 from app.exceptions.domain import (
     ForbiddenException,
     UnauthorizedException,
@@ -89,6 +93,28 @@ def get_user_service(
 ) -> UserService:
     """FastAPI dependency providing an initialized UserService instance with active session."""
     return UserService(session=session)
+
+
+def get_storage_service(
+    settings: Settings = Depends(get_current_settings),
+) -> "StorageService":
+    """FastAPI dependency providing an initialized StorageService instance."""
+    from app.storage import StorageService
+
+    return StorageService(settings=settings)
+
+
+def get_knowledge_service(
+    session: AsyncSession = Depends(get_database),
+    storage_service: "StorageService" = Depends(get_storage_service),
+) -> "KnowledgeService":
+    """FastAPI dependency providing an initialized KnowledgeService instance."""
+    from app.knowledge import KnowledgeService
+
+    return KnowledgeService(
+        session=session,
+        storage_service=storage_service,
+    )
 
 
 # ------------------------------------------------------------------------------

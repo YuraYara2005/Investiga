@@ -6,7 +6,6 @@ and securely hashed using the Argon2id cryptographic infrastructure.
 """
 
 import os
-from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,10 +28,14 @@ def get_admin_credentials_from_env() -> dict[str, str]:
         dict[str, str]: Dictionary with email, password, and full_name.
     """
     email = (
-        os.getenv("INITIAL_ADMIN_EMAIL")
-        or os.getenv("ADMIN_EMAIL")
-        or "admin@investiga.internal"
-    ).strip().lower()
+        (
+            os.getenv("INITIAL_ADMIN_EMAIL")
+            or os.getenv("ADMIN_EMAIL")
+            or "admin@investiga.internal"
+        )
+        .strip()
+        .lower()
+    )
 
     password = (
         os.getenv("INITIAL_ADMIN_PASSWORD")

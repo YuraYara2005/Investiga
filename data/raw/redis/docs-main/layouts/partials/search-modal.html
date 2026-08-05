@@ -1,0 +1,461 @@
+{{/* Search Modal */}}
+<style>
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1rem;
+  }
+
+  .search-magnifier-label svg {
+    color: #9ca3af;
+  }
+
+
+
+  .search-item-title {
+    font-weight: 500;
+  }
+
+  .search-item-path {
+    font-size: 0.875rem;
+    color: #9ca3af;
+  }
+
+  .search-term-match {
+    background-color: #fbbf24;
+    color: #1f2937;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+  }
+</style>
+<div class="sr-only w-screen h-screen fixed z-[200] top-0 left-0 cursor-auto flex flex-col bg-redis-ink-900/75 p-4 sm:p-6 md:p-[10vh] lg:p-[12vh]" id="search-container" role="button" aria-expanded="true" aria-haspopup="listbox" aria-labelledby="search-label" tabindex="0">
+<div class="my-0 mx-auto w-full max-w-[47.375rem] flex flex-col min-h-0 rounded-lg shadow-lg bg-redis-ink-900 border border-white border-opacity-30 p-6 gap-4">
+  <header class="flex flex-row gap-4 p-2">
+    <form id="search-form" class="grow flex flex-row gap-3 items-center" style="position: relative;">
+      <label class="search-magnifier-label" for="search-input" id="search-label" style="position: absolute;  left:20px; pointer-events: none;">
+        {{ partial "icons/search.html" }}
+      </label>
+      <input id="search-input" style="height: calc(3rem - 2px);" class="w-full pl-12 border border-white border-opacity-30 rounded-md search-input appearance-none focus:outline-none bg-redis-pen-800 text-white placeholder-gray-300" aria-autocomplete="both" aria-labelledby="search-label" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search&hellip;" type="text" value="">
+      <button type="reset" title="Clear the query" class="search-reset" aria-label="Clear the query" hidden="">
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <path d="M10 10l5.09-5.09L10 10l5.09 5.09L10 10zm0 0L4.91 4.91 10 10l-5.09 5.09L10 10z" stroke="currentColor" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+      <select id="search-select" style="height: calc(3rem - 2px);" class="w-2/5 pl-3 grow-0 border border-white border-opacity-30 rounded-md search-filter bg-redis-pen-800 text-white text-left pr-8 appearance-none hidden md:block" autocomplete="off">
+        <option value="all" selected>All products</option>
+        <option value="rs">Redis Software</option>
+        <option value="rc">Redis Cloud</option>
+        <option value="oss_and_stack">Redis Open Source</option>
+        <option value="redisinsight">Redis Insight</option>
+        <option value="kubernetes">Redis Enterprise for K8s</option>
+        <option value="redis-data-integration">Redis Data Integration</option>
+        <option value="clients">Client Libraries</option>
+      </select>
+    </form>
+    <button id="search-cancel" type="reset" aria-label="Cancel" class="px-3 border border-white border-opacity-30 rounded-md text-center bg-[#163341] text-white hover:bg-[#1a3a4a]">
+      ESC
+    </button>
+  </header>
+  <dl id="search-results" class="min-h-48 overflow-auto px-2 text-white" role="listbox"></dl>
+</div>
+</div>
+
+<script>
+  const searchModal = (() => {
+    const searchSite = encodeURIComponent(window.location.pathname)
+    const searchButton = document.querySelector('#search-button')
+    const searchButtonMobile = document.querySelector('#search-button-mobile')
+    const searchContainer = document.querySelector('#search-container')
+    const searchInput = searchContainer.querySelector('#search-input')
+    const searchSelect = searchContainer.querySelector('#search-select')
+    const resultsContainer = searchContainer.querySelector('#search-results')
+    const style = document.createElement('style')
+    
+    let keys = {}
+    let focusable
+    let firstFocusable
+    let lastFocusable
+  
+    function next (elem, selector) {
+      let nextElem = elem.nextElementSibling
+      if (!selector) return nextElem
+      if (nextElem && nextElem.matches(selector)) return nextElem
+      return null
+    }
+  
+    function debounce(callback, delay) {
+      let timeout
+      
+      return function() {
+        clearTimeout(timeout)
+        timeout = setTimeout(callback, delay)
+      }
+    }
+  
+    function searchSubmit(form) {
+      if (form.id !== 'search-form') return false
+  
+      const searchTerm = searchInput.value.trim()
+      const searchProduct = searchSelect.value
+  
+      if (searchTerm.length < 1) {
+        resultsContainer.innerHTML = ''
+        return
+      }
+  
+      function search(url) {
+        let promise = new Promise((resolve, reject) => {
+          const req = new XMLHttpRequest()
+          req.open('GET', url)
+          req.onload = function() {
+            if (req.status === 200) {
+              resolve(JSON.parse(req.response))
+            } else {
+              reject(Error(req.status))
+            }
+          }
+          req.send()
+        })
+  
+        return promise
+      }
+  
+      function sortData(data) {
+        // Override the natural category for results coming from specific sites
+        const deriveCategory = (record) => {
+          const url = (record && record.url) || ''
+          if (/^https?:\/\/(www\.)?redis\.io\/blog(\/|$|\?|#)/i.test(url)) return 'Blog'
+          if (/^https?:\/\/(www\.)?redis\.io\/tutorials(\/|$|\?|#)/i.test(url)) return 'Tutorials'
+          if (/^https?:\/\/support\.redislabs\.com(\/|$|\?|#)/i.test(url)) return 'Support'
+          return record.hierarchy && record.hierarchy[0]
+        }
+
+        // Get a list of unique times
+        const getCategories = (data) =>
+          data.reduce((a, c) => {
+            const cat = deriveCategory(c)
+            if (!a.includes(cat)) {
+              a.push(cat)
+            }
+
+            return a
+          }, [])
+
+        // If there's no natural section title, use the hierarchy
+        const constructSectionTitle = (record) => {
+          if (record.hierarchy && record.hierarchy.length > 2) {
+            return record.hierarchy[1]
+          } else {
+            return record.title
+          }
+        }
+
+        // Merge the data into a single list using the categories list as index
+        const mergeData = (data, categories) =>
+          categories.map((category) => {
+            const obj = {}
+            obj.category = category
+  
+            data.forEach((record) => {
+              if (deriveCategory(record) === category) {
+                obj[record.title] = {
+                  path: constructSectionTitle(record),
+                  product: record.hierarchy[2],
+                  url: record.url,
+                }
+              }
+            })
+  
+            return obj
+          })
+  
+        return mergeData(data.results, getCategories(data.results))
+      }
+  
+      function escape_evil_chars(str_in) {
+        return str_in.replaceAll('>','&gt;').replaceAll('<', '&lt;').replaceAll('&', '&amp;').replaceAll('"','&quot;').replaceAll("'",'&#x27;')
+      }   
+      
+      function displayData(data) {
+        resultsContainer.innerHTML = ''
+        searchInput.focus()
+        
+        if (data.results.length < 1) {
+          escapedSearchTerm = escape_evil_chars(searchTerm)
+          resultsContainer.insertAdjacentHTML(
+            'beforeend',
+            `<dt class="sr-only">${escapedSearchTerm}:</dt>
+            <dd class="text-center">
+              No results for \"<span class="font-bold">${escapedSearchTerm}</span>\"
+            </dd>`
+          )
+        } else {
+          sortData(data).forEach((result) => {
+            resultsContainer.insertAdjacentHTML(
+              'beforeend', 
+              `<dt class="font-bold text-md my-4">
+                ${result.category}
+              </dt>`
+            )
+
+            delete result.category
+            Object.keys(result).forEach((key, index) => {
+              resultsContainer.insertAdjacentHTML(
+                'beforeend',
+                `<dd class="search-item" role="option">
+                  <a href="${result[key].url}">
+                    <span class="search-item-icon"></span>
+                    <span class="search-item-content">
+                      ${result[key].path && result[key].product ? `<div class="search-item-container"><span class="search-item-path">${result[key].path}</span><span class="px-2">→</span><span class="search-item-path">${result[key].product}</span></div>` : ''}
+                      <span class="search-item-title">${key.replace(new RegExp(`(^|)(${searchTerm})(|$)`, 'ig'), '$1<b class="search-term-match">$2</b>$3')}</span>
+                    </span>
+                    <span class="search-item-action"></span>
+                  </a>
+                </dd>`
+              )
+            })
+            
+            if (!resultsContainer.querySelector('[aria-selected]')) resultsContainer.querySelector('.search-item').setAttribute('aria-selected', '')
+          })
+        }
+        return
+      }
+  
+      function displayError(error) {
+        console.log(error)
+      }
+
+      {{ with .Site.Params.searchService }}
+        search(`{{ . }}?q=${searchTerm}*&p=${searchProduct}&site=${searchSite}`)
+          .then(displayData)
+          .catch(displayError)
+      {{ end }}
+    }
+  
+    function loadHandler(event) {
+      style.innerHTML = `
+        [data-scroll-disabled="on"], 
+        [data-scroll-disabled="on"] body {
+          touch-action: none;
+          overscroll-behavior: none;
+          -webkit-overflow-scrolling: auto;
+          overflow: hidden;
+        }
+  
+        [data-scroll-disabled="on"] .sticky {
+          position: fixed;
+        }
+      `
+  
+      document.head.appendChild(style)
+      document.documentElement.dataset.searchState = 'off'
+    }
+  
+    function getNextSibling(elem, selector, direction) {
+      let sibling = direction === 'down' ? elem.nextElementSibling : elem.previousElementSibling
+    
+      while (sibling) {
+        if (sibling.matches(selector)) return sibling
+        sibling = direction === 'down' ? sibling.nextElementSibling : sibling.previousElementSibling
+      }
+    }
+  
+    function tabSelection(direction) {
+      const currentSelection = resultsContainer.querySelector('[aria-selected]')
+      if (!currentSelection || direction === 'down' && !currentSelection.nextElementSibling || direction === 'up' && !currentSelection.previousElementSibling) return false
+        
+      const nextSelection = getNextSibling(currentSelection, '.search-item', direction)
+      if (!nextSelection) return false
+      
+      nextSelection.setAttribute('aria-selected', '')
+      currentSelection.removeAttribute('aria-selected')
+      resultsContainer.scrollTop = nextSelection.offsetTop - resultsContainer.offsetTop
+    }
+    
+    function keyDownHandler(event) {
+      switch (event.key) {
+  
+        // Arrow keys
+        case 'ArrowDown':
+          if (document.documentElement.dataset.searchState === 'off' || !document.querySelector('.search-item')) return false
+          event.preventDefault()
+          tabSelection('down')
+          break
+  
+        case 'ArrowUp':
+          if (document.documentElement.dataset.searchState === 'off' || !document.querySelector('.search-item')) return false
+          event.preventDefault()
+          tabSelection('up')
+          break
+  
+        // Tab
+        case 'Tab':
+          if (document.documentElement.dataset.searchState === 'off') return false
+  
+          if (focusable.length === 1) {
+            event.preventDefault()
+            break
+          }
+  
+          // If shift is fired, tab backward
+          if (event.shiftKey) {
+            if (document.activeElement === firstFocusable) {
+              event.preventDefault()
+              lastFocusable.focus()
+            }
+  
+            // Otherwise tab forward
+          } else {
+            if (document.activeElement === lastFocusable) {
+              event.preventDefault()
+              firstFocusable.focus()
+            }
+          }
+          break
+  
+        // Esc
+        case 'Escape':
+          if (document.documentElement.dataset.searchState === 'off') return false
+          stopSearch()
+          break
+        
+        // Enter
+        case 'Enter':
+          if (!document.querySelector('.search-item:focus-within') && document.querySelector('.search-item[aria-selected]')) {
+            event.preventDefault()
+            document.querySelector('.search-item[aria-selected] a').click()
+          }
+          break
+  
+        // Forward slash
+        case '/':
+          if (document.documentElement.dataset.searchState === 'on') return false
+          event.preventDefault()
+          startSearch()
+          break
+      
+        // Default
+        default:
+          return false
+          break
+      }
+    }
+
+    function changeHandler(event) {
+      searchSubmit(document.activeElement.closest('form'))
+    }
+  
+    function keyUpHandler(event) {
+      if (document.documentElement.dataset.searchState === 'off' || !document.activeElement.matches('.search-input')) return false
+
+      switch (event.key) {
+        case 'Meta':
+          return false
+          break
+        case 'ArrowDown':
+          return false
+          break
+        case 'ArrowUp':
+          return false
+          break
+        case 'ArrowLeft':
+          return false
+          break
+        case 'ArrowRight':
+          return false
+          break
+        case 'Tab':
+          return false
+          break
+        case 'Escape':
+          return false
+          break
+        case 'Enter':
+          return false
+          break
+        case '/':
+          return false
+          break
+        default:
+          searchSubmit(document.activeElement.closest('form'))
+          break
+      }
+    }
+  
+    function multiKeyHandler(event) {
+      if (document.documentElement.dataset.searchState === 'on') return false
+  
+      let { key, type } = event
+      let isKeyDown = (type == 'keydown')
+      keys[key] = isKeyDown
+  
+      // Both (cmd || cntrl) & k pressed
+      if (isKeyDown && (keys.Control || keys.Meta) && keys.k) {
+        event.preventDefault()
+        startSearch()
+      }
+    }
+  
+    // Click handler function
+    function clickHandler(event) {
+      if (event.target.closest('#search-button') || event.target.closest('#search-button-mobile')) {
+        startSearch()
+      } else if (event.target.closest('#search-cancel') || event.target.matches('#search-container')) {
+        stopSearch()
+      }
+    }
+  
+    function startSearch() {
+      sessionStorage.setItem('scroll-position', document.documentElement.scrollTop)
+      document.documentElement.dataset.scrollDisabled = 'on'
+      document.documentElement.dataset.searchState = 'on'
+      allowFocus(searchContainer, true)
+      trapFocus(searchContainer)
+      searchInput.focus()
+    }
+  
+    function stopSearch() {
+      document.documentElement.dataset.searchState = 'off'
+      document.documentElement.dataset.scrollDisabled = 'off'
+      document.documentElement.scrollTop = sessionStorage.getItem('scroll-position')
+      allowFocus(searchContainer, false)
+      document.activeElement.blur()
+      resultsContainer.innerHTML = ''
+      searchInput.value = ''
+      keys = {}
+    }
+  
+    function submitHandler(event) {
+      if (event.target.id === 'search-form') {
+        event.preventDefault()
+        return false
+      }
+    }
+  
+    function allowFocus(selector, state) {
+      const focusable = selector.querySelectorAll('button, [href], input, select, textarea')
+      focusable.forEach(el => el.setAttribute('tabindex', state ? '' : '-1'))
+      selector.classList.toggle('sr-only')
+    }
+  
+    function trapFocus(selector) {
+      focusable = selector.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"]')
+      firstFocusable = focusable[0]
+      lastFocusable = focusable[focusable.length - 1]
+    }
+  
+    // Attach event listeners
+    document.addEventListener('DOMContentLoaded', loadHandler)
+    document.addEventListener('click', clickHandler)
+    document.addEventListener('keydown', event => debounce(keyDownHandler(event), 100))
+    document.addEventListener('keyup', event => debounce(keyUpHandler(event), 100))
+    searchSelect.addEventListener('change', event => debounce(changeHandler(event), 100))
+    document.addEventListener('keydown', multiKeyHandler)
+    document.addEventListener('keyup', multiKeyHandler)
+    document.addEventListener('submit', submitHandler)
+  })()
+</script>

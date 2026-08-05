@@ -1,0 +1,22 @@
+command: docker offload stop
+short: Stop a Docker Offload session
+usage: docker offload stop [OPTIONS]
+pname: docker offload
+plink: docker_offload.yaml
+options:
+  - option: terminate
+    value_type: bool
+    default_value: "false"
+    description: Terminate the remote lease
+    deprecated: false
+    hidden: false
+    experimental: false
+    experimentalcli: false
+    kubernetes: false
+    swarm: false
+deprecated: false
+hidden: false
+experimental: false
+experimentalcli: false
+kubernetes: false
+swarm: false

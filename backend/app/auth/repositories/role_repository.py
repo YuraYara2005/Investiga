@@ -78,9 +78,7 @@ class RoleRepository(BaseRepository[Role]):
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def assign_permission(
-        self, role: Role, permission: Permission
-    ) -> None:
+    async def assign_permission(self, role: Role, permission: Permission) -> None:
         """Associate an operational permission entitlement with a role.
 
         Args:
@@ -91,9 +89,7 @@ class RoleRepository(BaseRepository[Role]):
             role.permissions.append(permission)
             await self._session.flush()
 
-    async def remove_permission(
-        self, role: Role, permission: Permission
-    ) -> None:
+    async def remove_permission(self, role: Role, permission: Permission) -> None:
         """Revoke a permission entitlement from a role.
 
         Args:

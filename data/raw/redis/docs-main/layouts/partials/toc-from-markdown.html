@@ -1,0 +1,134 @@
+{{- /* Generate table of contents JSON from raw Markdown content */ -}}
+{{- /* This parses ## and ### headers directly from .RawContent */ -}}
+{{- /* since Hugo's .TableOfContents may be empty for custom templates */ -}}
+
+{{- $content := .RawContent -}}
+
+{{- /* Unescape HTML entities that may be present in .RawContent */ -}}
+{{- $content = $content | replaceRE "&#34;" "\"" -}}
+{{- $content = $content | replaceRE "&quot;" "\"" -}}
+{{- $content = $content | replaceRE "&#39;" "'" -}}
+{{- $content = $content | replaceRE "&lt;" "<" -}}
+{{- $content = $content | replaceRE "&gt;" ">" -}}
+{{- $content = $content | replaceRE "&amp;" "&" -}}
+
+{{- $sections := slice -}}
+
+{{- /* Ids already used on this page, so duplicates can be suffixed rather than
+       repeated. Keeps the TOC in step with sections[] in the JSON output, which
+       does the same in build/transform_json_sections.ts. */ -}}
+{{- $usedIds := slice -}}
+
+{{- /* Drop fenced code blocks before looking for headings, so a "## comment" inside a
+       code sample does not become a navigation entry. Uses the same simple pairing rule
+       as splitContentIntoSections in build/transform_json_sections.ts, so both agree on
+       what counts as code and their ids stay in step. */ -}}
+{{- $content = $content | replaceRE "(?s)```.*?```" "" -}}
+
+{{- /* Find all ## and ### headers in the raw markdown */ -}}
+{{- /* Pattern matches lines starting with ## or ### followed by space and title */ -}}
+{{- $headerPattern := `(?m)^(#{2,3}) +(.+)$` -}}
+
+{{- /* Extract all headers */ -}}
+{{- $headerMatches := findRE $headerPattern $content -}}
+
+{{- /* Track current h2 section for nesting h3 children */ -}}
+{{- $currentH2 := dict -}}
+{{- $currentH2Index := -1 -}}
+
+{{- /* Process each header */ -}}
+{{- range $headerMatch := $headerMatches -}}
+  {{- /* Determine header level and extract title */ -}}
+  {{- $isH3 := hasPrefix $headerMatch "### " -}}
+  {{- $title := "" -}}
+  {{- if $isH3 -}}
+    {{- $title = replaceRE `^### +` "" $headerMatch -}}
+  {{- else -}}
+    {{- $title = replaceRE `^## +` "" $headerMatch -}}
+  {{- end -}}
+
+  {{- /* Remove inline code markers */ -}}
+  {{- $title = replaceRE "`([^`]+)`" "$1" $title -}}
+  {{- /* Remove other inline formatting */ -}}
+  {{- $title = replaceRE `\*\*([^*]+)\*\*` "$1" $title -}}
+  {{- $title = replaceRE `\*([^*]+)\*` "$1" $title -}}
+  {{- $title = replaceRE `_([^_]+)_` "$1" $title -}}
+  {{- /* Trim whitespace */ -}}
+  {{- $title = $title | strings.TrimSpace -}}
+
+  {{- /* Hugo's explicit heading anchor, "## Title {#custom-id}". Hugo uses the
+         anchor as the rendered heading id and does not display it, so it has to come
+         out of the title and be used verbatim as the id. Matched strictly, because a
+         loose trailing-brace match would eat Python signatures ending in an empty
+         dict and dict defaults such as {'extra': 'ignore'}. */ -}}
+  {{- $explicitId := "" -}}
+  {{- with (findRESubmatch `\s*\{#([A-Za-z0-9][A-Za-z0-9_.:-]*)\}\s*$` $title 1) -}}
+    {{- $explicitId = index (index . 0) 1 -}}
+  {{- end -}}
+  {{- if $explicitId -}}
+    {{- $title = $title | replaceRE `\s*\{#[A-Za-z0-9][A-Za-z0-9_.:-]*\}\s*$` "" | strings.TrimSpace -}}
+  {{- end -}}
+
+  {{- /* Generate ID (slug) from title */ -}}
+  {{- $id := $title | lower -}}
+  {{- /* Replace spaces with hyphens */ -}}
+  {{- $id = $id | replaceRE `\s+` "-" -}}
+  {{- /* Remove special characters except hyphens */ -}}
+  {{- $id = $id | replaceRE `[^a-z0-9-]` "" -}}
+  {{- /* Remove consecutive hyphens */ -}}
+  {{- $id = $id | replaceRE `-+` "-" -}}
+  {{- /* Trim leading/trailing hyphens */ -}}
+  {{- $id = $id | replaceRE `^-+|-+$` "" -}}
+
+  {{- /* An explicit anchor overrides the slug entirely */ -}}
+  {{- if $explicitId -}}
+    {{- $id = $explicitId -}}
+  {{- end -}}
+
+  {{- /* Disambiguate a repeated id with Hugo's own -1, -2 suffix convention. Bounded by
+         the heading count rather than an arbitrary number, since a page can never need
+         more suffixes than it has headings -- an arbitrary cap would silently leave
+         duplicates on a page that exceeded it. */ -}}
+  {{- if in $usedIds $id -}}
+    {{- $base := $id -}}
+    {{- range seq 1 (len $headerMatches) -}}
+      {{- if in $usedIds $id -}}
+        {{- $id = printf "%s-%d" $base . -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if $id -}}
+    {{- $usedIds = $usedIds | append $id -}}
+  {{- end -}}
+
+  {{- /* Add to sections array */ -}}
+  {{- if and $id $title -}}
+    {{- if $isH3 -}}
+      {{- /* H3: Add as child to current H2 if one exists */ -}}
+      {{- if ge $currentH2Index 0 -}}
+        {{- $existingH2 := index $sections $currentH2Index -}}
+        {{- $children := $existingH2.children | default slice -}}
+        {{- $children = $children | append (dict "id" $id "title" $title) -}}
+        {{- $updatedH2 := merge $existingH2 (dict "children" $children) -}}
+        {{- /* Save elements after current H2 BEFORE modifying $sections */ -}}
+        {{- $remainingElements := slice -}}
+        {{- if lt (add $currentH2Index 1) (len $sections) -}}
+          {{- $remainingElements = after (add $currentH2Index 1) $sections -}}
+        {{- end -}}
+        {{- /* Rebuild sections: elements before H2 + updated H2 + elements after H2 */ -}}
+        {{- $sections = $sections | first $currentH2Index | append $updatedH2 -}}
+        {{- range $remainingElements -}}
+          {{- $sections = $sections | append . -}}
+        {{- end -}}
+      {{- end -}}
+    {{- else -}}
+      {{- /* H2: Add as new top-level section */ -}}
+      {{- $sections = $sections | append (dict "id" $id "title" $title) -}}
+      {{- $currentH2Index = sub (len $sections) 1 -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* Output JSON */ -}}
+{"sections":{{ $sections | jsonify }}}
+

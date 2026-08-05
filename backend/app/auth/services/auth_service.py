@@ -32,9 +32,7 @@ class AuthService:
     """Service coordinating user registration, credential authentication, and token issuance."""
 
     # Precomputed valid Argon2id hash used to mitigate user enumeration timing attacks
-    DUMMY_ARGON2_HASH = (
-        "$argon2id$v=19$m=65536,t=3,p=4$ytkbA0AIwTgHAOC8dw5B6A$Tg5zhy7lskyKvKG4Mh7x7cwZGjzdOoAZc+jgFg/nwBs"
-    )
+    DUMMY_ARGON2_HASH = "$argon2id$v=19$m=65536,t=3,p=4$ytkbA0AIwTgHAOC8dw5B6A$Tg5zhy7lskyKvKG4Mh7x7cwZGjzdOoAZc+jgFg/nwBs"
 
     def __init__(
         self,
@@ -196,9 +194,7 @@ class AuthService:
             expires_in=token_pair.expires_in,
         )
 
-    async def refresh_access_token(
-        self, request: RefreshTokenRequest
-    ) -> TokenResponse:
+    async def refresh_access_token(self, request: RefreshTokenRequest) -> TokenResponse:
         """Issue a new token pair using a valid cryptographic refresh token (rotation).
 
         Args:

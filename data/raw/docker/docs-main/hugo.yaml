@@ -1,0 +1,421 @@
+title: Docker Docs
+baseURL: https://docs.docker.com
+refLinksErrorLevel: ERROR
+enableGitInfo: true
+disablePathToLower: true
+enableInlineShortcodes: true
+disableHugoGeneratorInject: true
+ignoreLogs:
+  - cascade-pattern-with-extension
+
+taxonomies: {}
+
+# Cascade layout and type settings to content subtrees.
+# See https://gohugo.io/configuration/cascade/#target
+cascade:
+  # Sample pages use the samples type (routes to layouts/samples/)
+  - target:
+      path: /reference/samples/**
+      kind: page
+    type: samples
+  # CLI reference pages use the cli layout (data-driven from YAML)
+  - target:
+      path: /reference/cli/docker
+    layout: cli
+  - target:
+      path: /reference/cli/docker/**
+    layout: cli
+  # sbx CLI reference pages use the sbx-cli layout (cobra/doc YAML)
+  - target:
+      path: /reference/cli/sbx
+    layout: sbx-cli
+  - target:
+      path: /reference/cli/sbx/**
+    layout: sbx-cli
+  # Docker Agent section indexes are mounted navigation stubs; skip
+  # rendering them so they don't produce empty pages (same pattern as
+  # gordon/concepts and other render:never section indexes)
+  - target:
+      path: /manuals/ai/docker-agent/**
+      kind: section
+    build:
+      render: never
+
+# Remove the /manuals prefix for content in the manuals section
+permalinks:
+  page:
+    manuals: /:sections[1:]/:slugorcontentbasename/
+  section:
+    manuals: /:sections[1:]/
+
+markup:
+  tableOfContents:
+    startLevel: 2
+    endLevel: 3
+  goldmark:
+    extensions:
+      typographer: false
+    parser:
+      wrapStandAloneImageWithinParagraph: false
+      attribute:
+        # Allow setting attributes on block-level elements
+        block: true
+    renderer:
+      # Allow inline HTML
+      unsafe: true
+  highlight:
+    # Use custom CSS for syntax highlighting
+    noClasses: false
+
+build:
+  # Generate hugo_stats.json - Tailwind uses this to detect classes
+  buildStats:
+    enable: true
+    disableIDs: true
+    disableTags: true
+  # Ensure that CSS/assets changes trigger a dev server rebuild
+  cachebusters:
+    - source: assets/notwatching/hugo_stats\.json
+      target: css
+    - source: (postcss|tailwind)\.config\.js
+      target: css
+    - source: assets/.*\.js
+      target: js
+    - source: (assets|layouts)/.*\.(.*)$
+      target: "$2"
+
+# Additional output formats (e.g. custom JSON files)
+outputFormats:
+  # File containing all redirects, see: layouts/index.redirects.json
+  redirects:
+    baseName: redirects
+    isPlainText: true
+    mediaType: "application/json"
+    notAlternative: true
+  # Metadata file used by DD global search, see: layouts/index.metadata.json
+  metadata:
+    baseName: metadata
+    isPlainText: true
+    mediaType: "application/json"
+    notAlternative: true
+  # llms.txt
+  llms:
+    baseName: llms
+    isPlainText: true
+    mediaType: "text/plain"
+    notAlternative: true
+    permalinkable: false
+  llmsfull:
+    baseName: llms-full
+    isPlainText: true
+    mediaType: "text/plain"
+    notAlternative: true
+    permalinkable: false
+
+# Enable custom output formats
+# (only generate the custom output files once)
+outputs:
+  home:
+    - html
+    - markdown
+    - redirects
+    - metadata
+    - robots
+    - llms
+    - llmsfull
+  page:
+    - html
+    - markdown
+  section:
+    - html
+    - markdown
+
+languages:
+  en:
+    label: English
+
+# Site-wide parameters
+# Can be accessed in content with {{% param "param_name" %}}
+# Or in layouts/partials with site.Params.param_name
+params:
+  analytics:
+    hotjar:
+      prod: 3169877
+      stage: 3218181
+    google: GTM-WL2QLG5
+    onetrust: 65425fb0-7b36-4317-9f10-7b3e08039af0
+    vwo: 723167
+    marlin:
+      # Public-write API keys for the Marlin analytics SDK.
+      apiKey:
+        prod: mrl_2nuEKUo5bzRv8GcDKeYjij4J4U--OLdN
+        stage: mrl_W14SGEQ7nYmBsAyjZPyOM-nlgE53E-vX
+      endpoint:
+        prod: https://marlin-2.docker.com
+        stage: https://marlin-2-stage.docker.com
+
+  # Docs repository URL
+  repo: https://github.com/docker/docs
+
+  # === Example versions ===
+  # The following parameters are used in various ways in content and templates.
+  # Mostly as examples in code snippets, but also in other exotic ways.
+  # Use `grep` to figure out how they might be used.
+
+  # Latest version of the Docker Engine API
+  latest_engine_api_version: "1.55"
+  # Latest version of Docker Engine
+  docker_ce_version: "29.7.1"
+  # Previous version of the Docker Engine
+  # (Used to show e.g., "latest" and "latest"-1 in engine install examples
+  docker_ce_version_prev: "29.7.0"
+  # Latest Docker Compose version
+  compose_version: "v5.4.0"
+  # Latest BuildKit version
+  buildkit_version: "0.32.0"
+  # Latest actions version
+  bake_action_version: "v7"
+  build_push_action_version: "v7"
+  login_action_version: "v4"
+  metadata_action_version: "v6"
+  setup_buildx_action_version: "v4"
+  setup_compose_action_version: "v2"
+  setup_docker_action_version: "v5"
+  setup_qemu_action_version: "v4"
+  github_builder_version: "v1"
+  # Generic actions
+  checkout_action_version: "v6"
+  cache_action_version: "v5"
+
+  # Example runtime/library/os versions
+  example_go_version: "1.26"
+  example_alpine_version: "3.23"
+  example_node_version: "24"
+
+menus:
+  # Site header menu
+  main:
+    - name: Get started
+      pageRef: /get-started/
+      weight: 1
+    - name: Guides
+      pageRef: /guides/
+      weight: 2
+    - name: Manuals
+      pageRef: /manuals/
+      weight: 3
+    - name: Reference
+      pageRef: /reference/
+      weight: 4
+
+  # Footer links
+  footer:
+    - url: https://www.docker.com/products
+      name: Product offerings
+    - url: https://www.docker.com/products/personal
+      name: Docker Personal
+      parent: Product offerings
+    - url: https://www.docker.com/products/pro
+      name: Docker Pro
+      parent: Product offerings
+    - url: https://www.docker.com/products/team
+      name: Docker Team
+      parent: Product offerings
+    - url: https://www.docker.com/products/business
+      name: Docker Business
+      parent: Product offerings
+    - url: https://www.docker.com/pricing?ref=Docs&refAction=DocsFooter
+      name: Pricing FAQs
+      parent: Product offerings
+    - url: https://www.docker.com/partners/programs
+      name: Docker Verified Publisher
+      parent: Product offerings
+    - url: https://www.docker.com/partners
+      name: Partners
+      parent: Product offerings
+
+    - url: https://www.docker.com/
+      name: Features
+    - url: https://www.docker.com/products/docker-desktop
+      name: Docker Desktop
+      parent: Features
+    - url: https://www.docker.com/products/docker-hub
+      name: Docker Hub
+      parent: Features
+    - url: https://www.docker.com/products/secure-software-supply-chain
+      name: Secure Software Supply Chain
+      parent: Features
+    - url: https://www.docker.com/products/container-runtime
+      name: Container Runtime
+      parent: Features
+    - url: https://www.docker.com/products/developer-tools
+      name: Developer Tools
+      parent: Features
+    - url: https://www.docker.com/partners
+      name: Trusted Content
+      parent: Features
+    - url: https://www.docker.com/roadmap
+      name: Docker Product Roadmap
+      parent: Features
+
+    - name: Developers
+    - url: https://www.docker.com/use-cases
+      name: Use cases
+      parent: Developers
+    - url: /get-started/
+      name: Get started
+      parent: Developers
+    - url: https://www.docker.com/blog/
+      name: Blog
+      parent: Developers
+    - url: https://www.docker.com/docker-community
+      name: Community
+      parent: Developers
+    - url: https://www.docker.com/open-source
+      name: Open Source
+      parent: Developers
+    - url: https://www.docker.com/community/get-involved/developer-preview
+      name: Preview Program
+      parent: Developers
+
+    - url: https://www.docker.com/company
+      name: About us
+    - url: https://www.docker.com/what-container
+      name: What is a container?
+      parent: About us
+    - url: https://www.docker.com/why-docker
+      name: Why Docker?
+      parent: About us
+    - url: https://www.docker.com/events
+      name: Virtual events
+      parent: About us
+    - url: https://www.docker.com/swag
+      name: Swag store
+      parent: About us
+    - url: https://www.docker.com/company/newsroom
+      name: Newsroom
+      parent: About us
+    - url: https://www.docker.com/careers
+      name: Careers
+      parent: About us
+    - url: https://www.docker.com/company/contact
+      name: Contact us
+      parent: About us
+    - url: https://www.docker.com/customers
+      name: Customers
+      parent: About us
+    - url: https://www.docker.com/newsletter-subscription
+      name: Newsletter
+      parent: About us
+
+# Hugo modules - for fetching docs from upstream repos
+# NOTE: we always vendor upstream docs in _vendor/
+# Versions are declared in go.mod
+module:
+  proxy: https://proxy.golang.org,direct
+  hugoVersion:
+    extended: false
+    min: "0.156.0"
+  mounts:
+    # Mount the assets directory so it doesn't get overwritten
+    - source: assets
+      target: assets
+    # Mount hugo_stats.json to the assets dir to trigger cachebust
+    - disableWatch: true
+      source: hugo_stats.json
+      target: assets/notwatching/hugo_stats.json
+    # Mount the icon files to assets so we can access them with resources.Get
+    - source: node_modules/heroicons/24/solid
+      target: assets/icons
+    # Mount highlight.js theme for Gordon chat syntax highlighting
+    - source: node_modules/highlight.js/styles/github-dark.css
+      target: assets/css/highlight-github-dark.css
+
+  imports:
+    # Docker Engine API
+    - path: github.com/moby/moby/api
+      mounts:
+        - source: docs/CHANGELOG.md
+          target: content/reference/api/engine/version-history.md
+        - source: docs
+          target: content/reference/api/engine/version
+          files: ["*.yaml"]
+
+    # BuildKit
+    - path: github.com/moby/buildkit
+      mounts:
+        - source: frontend/dockerfile/docs/reference.md
+          target: content/reference/dockerfile.md
+        - source: frontend/dockerfile/docs/rules
+          target: content/reference/build-checks
+          files: ["*.md"]
+        - source: docs/buildkitd.toml.md
+          target: content/manuals/build/buildkit/toml-configuration.md
+        - source: docs/attestations/slsa-definitions.md
+          target: content/manuals/build/metadata/attestations/slsa-definitions.md
+        - source: docs/attestations/attestation-storage.md
+          target: content/manuals/build/metadata/attestations/attestation-storage.md
+
+    # Buildx CLI plugin
+    - path: github.com/docker/buildx
+      mounts:
+        - source: docs/bake-reference.md
+          target: content/manuals/build/bake/reference.md
+        - source: docs/bake-stdlib.md
+          target: content/manuals/build/bake/stdlib.md
+
+    # Docker CLI
+    - path: github.com/docker/cli
+      mounts:
+        - source: docs/extend
+          target: content/manuals/engine/extend
+          files:
+            - "! EBS_volume.md"
+            - "! plugins_metrics.md"
+            - "! plugins_services.md"
+        - source: docs/deprecated.md
+          target: content/manuals/engine/deprecated.md
+        - source: docs/reference/run.md
+          target: content/manuals/engine/containers/run.md
+        - source: docs/reference/dockerd.md
+          target: content/reference/cli/dockerd.md
+
+    # Compose
+    - path: github.com/docker/compose/v5
+      mounts:
+        - source: docs/reference
+          target: data/cli/compose
+          files: ["*.yaml"]
+
+    # Model CLI
+    - path: github.com/docker/model-runner
+      mounts:
+        - source: cmd/cli/docs/reference
+          target: data/cli/model
+          files: ["*.yaml"]
+
+    # Docker Agent
+    # Single-sources https://docker.github.io/docker-agent/ content;
+    # bumped on each docker-agent release by sync-docker-agent-docs.yml.
+    # Sections are mounted individually so hugo mod vendor does not
+    # vendor the upstream Jekyll site files that also live in docs/.
+    - path: github.com/docker/docker-agent
+      mounts:
+        - source: docs/getting-started
+          target: content/manuals/ai/docker-agent/getting-started
+        - source: docs/concepts
+          target: content/manuals/ai/docker-agent/concepts
+        - source: docs/configuration
+          target: content/manuals/ai/docker-agent/configuration
+        - source: docs/tools
+          target: content/manuals/ai/docker-agent/tools
+        - source: docs/providers
+          target: content/manuals/ai/docker-agent/providers
+        - source: docs/features
+          target: content/manuals/ai/docker-agent/features
+        - source: docs/guides
+          target: content/manuals/ai/docker-agent/guides
+        - source: docs/community
+          target: content/manuals/ai/docker-agent/community
+        - source: docs/demo.gif
+          target: content/manuals/ai/docker-agent/demo.gif

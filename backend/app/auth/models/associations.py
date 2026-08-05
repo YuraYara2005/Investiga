@@ -5,7 +5,6 @@ and between Roles and Permissions, with explicit foreign keys, cascading rules,
 and audit tracking timestamps.
 """
 
-
 from sqlalchemy import Column, DateTime, ForeignKey, Table, func
 from sqlalchemy.dialects.postgresql import UUID
 

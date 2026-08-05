@@ -28,9 +28,7 @@ def _extract_trace_id(request: Request) -> str | None:
     )
 
 
-async def app_exception_handler(
-    request: Request, exc: BaseAppException
-) -> Any:
+async def app_exception_handler(request: Request, exc: BaseAppException) -> Any:
     """Handle custom application and domain exceptions."""
     trace_id = _extract_trace_id(request)
 
@@ -68,9 +66,7 @@ async def app_exception_handler(
     )
 
 
-async def http_exception_handler(
-    request: Request, exc: StarletteHTTPException
-) -> Any:
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> Any:
     """Handle standard FastAPI/Starlette HTTPExceptions."""
     trace_id = _extract_trace_id(request)
 
@@ -152,9 +148,7 @@ async def validation_exception_handler(
     )
 
 
-async def sqlalchemy_exception_handler(
-    request: Request, exc: SQLAlchemyError
-) -> Any:
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -> Any:
     """Handle database-level exceptions without leaking internal schemas or SQL statements."""
     trace_id = _extract_trace_id(request)
 
@@ -183,9 +177,7 @@ async def sqlalchemy_exception_handler(
     )
 
 
-async def unhandled_exception_handler(
-    request: Request, exc: Exception
-) -> Any:
+async def unhandled_exception_handler(request: Request, exc: Exception) -> Any:
     """Catch-all handler for unexpected internal server errors (500)."""
     trace_id = _extract_trace_id(request)
 
@@ -211,7 +203,9 @@ def register_exception_handlers(app: FastAPI) -> None:
     """Register all centralized exception handlers onto the FastAPI application instance."""
     app.add_exception_handler(BaseAppException, cast(Any, app_exception_handler))
     app.add_exception_handler(StarletteHTTPException, cast(Any, http_exception_handler))
-    app.add_exception_handler(RequestValidationError, cast(Any, validation_exception_handler))
+    app.add_exception_handler(
+        RequestValidationError, cast(Any, validation_exception_handler)
+    )
     app.add_exception_handler(ValidationError, cast(Any, validation_exception_handler))
     app.add_exception_handler(SQLAlchemyError, cast(Any, sqlalchemy_exception_handler))
     app.add_exception_handler(Exception, cast(Any, unhandled_exception_handler))

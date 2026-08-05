@@ -57,18 +57,14 @@ class LivenessResponse(BaseModel):
     """Lightweight response for Kubernetes liveness probes."""
 
     status: Literal["alive"] = "alive"
-    timestamp: str = Field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 class ReadinessResponse(BaseModel):
     """Response envelope for Kubernetes readiness probes."""
 
     status: Literal["ready"] = "ready"
-    timestamp: str = Field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     components: dict[str, ComponentHealth] = Field(default_factory=dict)
 
 

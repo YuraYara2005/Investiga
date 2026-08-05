@@ -1,0 +1,44 @@
+# Each line is a file pattern followed by one or more owners.
+# Owners will be requested for review when someone opens a pull request.
+
+# For more details, see https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+/content/manuals/build/ @dvdksn
+
+/content/manuals/build-cloud/ @craig-osterhout
+
+/content/manuals/compose/ @aevesdocker
+
+/content/manuals/desktop/ @aevesdocker
+
+/content/manuals/extensions/ @aevesdocker
+
+/content/manuals/extensions-sdk/ @aevesdocker
+
+/content/manuals/scout/ @craig-osterhout
+
+/content/manuals/docker-hub/ @craig-osterhout
+
+/content/manuals/engine/ @dvdksn
+
+/content/reference/api/engine/ @dvdksn
+
+/content/reference/cli/ @dvdksn
+
+/content/manuals/subscription/ @sarahsanders-docker
+
+/content/manuals/security/ @aevesdocker @sarahsanders-docker
+
+/content/manuals/admin/ @sarahsanders-docker
+
+/content/manuals/billing/ @sarahsanders-docker
+
+/content/manuals/accounts/ @sarahsanders-docker
+
+/content/manuals/ai/ @dvdksn
+
+/_vendor @dvdksn
+
+/content/manuals/offload/ @craig-osterhout
+
+/content/manuals/dhi/ @craig-osterhout

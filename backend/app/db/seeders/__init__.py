@@ -19,9 +19,9 @@ from app.db.seeders.seed import seed_all
 
 __all__ = [
     "DEFAULT_ROLES",
+    "SYSTEM_PERMISSIONS",
     "PermissionDefinition",
     "RoleSpecification",
-    "SYSTEM_PERMISSIONS",
     "get_admin_credentials_from_env",
     "seed_admin",
     "seed_all",

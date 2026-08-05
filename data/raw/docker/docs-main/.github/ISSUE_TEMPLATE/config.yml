@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - Name: Slack
+    url: https://dockr.ly/comm-slack
+    about: Ask questions in the Docker Community Slack
+  - name: Moby
+    url: https://github.com/moby/moby/issues
+    about: Bug reports for Docker Engine
+  - name: Docker Desktop
+    url: https://github.com/docker/desktop-feedback
+    about: Bug reports for Docker Desktop
+  - name: Docker Compose
+    url: https://github.com/docker/compose/issues
+    about: Bug reports for Docker Compose
+  - name: Docker Buildx
+    url: https://github.com/docker/buildx/issues
+    about: Bug reports for Docker Buildx

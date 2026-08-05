@@ -171,13 +171,13 @@ def test_unhandled_exception_handling(client: TestClient) -> None:
     data = response.json()
     assert data["success"] is False
     assert data["error"]["code"] == "INTERNAL_SERVER_ERROR"
-    assert "division by zero" not in data["error"]["message"]  # Internal trace not leaked
+    assert (
+        "division by zero" not in data["error"]["message"]
+    )  # Internal trace not leaked
 
 
 def test_trace_id_header_propagation(client: TestClient) -> None:
-    response = client.get(
-        "/test/not-found", headers={"X-Request-ID": "test-req-9041"}
-    )
+    response = client.get("/test/not-found", headers={"X-Request-ID": "test-req-9041"})
     assert response.status_code == 404
     data = response.json()
     assert data["error"]["trace_id"] == "test-req-9041"

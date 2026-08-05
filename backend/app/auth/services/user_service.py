@@ -28,9 +28,7 @@ class UserService:
         self._session = session
         self._user_repo = user_repo or UserRepository(session=session)
 
-    async def get_current_user_profile(
-        self, user_id: uuid.UUID
-    ) -> CurrentUserResponse:
+    async def get_current_user_profile(self, user_id: uuid.UUID) -> CurrentUserResponse:
         """Retrieve the authenticated principal's profile, roles, and aggregated permissions.
 
         Args:
