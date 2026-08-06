@@ -16,19 +16,14 @@ from app.storage.exceptions import (
     UnsupportedFileTypeException,
 )
 
-# Known dangerous executable and script extensions strictly prohibited
+# Known dangerous executable and binary extensions strictly prohibited
 DISALLOWED_EXECUTABLE_EXTENSIONS: frozenset[str] = frozenset(
     {
         ".exe",
         ".bat",
         ".cmd",
-        ".sh",
-        ".bash",
-        ".ps1",
-        ".psm1",
         ".vbs",
         ".vbe",
-        ".js",
         ".jse",
         ".wsf",
         ".wsh",
@@ -44,15 +39,14 @@ DISALLOWED_EXECUTABLE_EXTENSIONS: frozenset[str] = frozenset(
         ".dylib",
         ".bin",
         ".elf",
-        ".py",
         ".pyc",
         ".pyd",
-        ".php",
         ".asp",
         ".aspx",
         ".jsp",
         ".cgi",
-        ".pl",
+        ".sys",
+        ".drv",
     }
 )
 
@@ -163,25 +157,31 @@ class FileValidator:
         # 5. Check double extensions and disguises (e.g., 'document.pdf.exe' or 'exploit.exe.pdf')
         parts = pure_name.split(".")
         if len(parts) < 2:
-            raise InvalidFileException(
-                message="File must possess a valid file extension.",
-                details={"filename": pure_name},
-            )
-
-        # Disallow multiple extensions if any preceding part is an executable extension
-        for part in parts[1:-1]:
-            preceding_ext = f".{part.lower()}"
-            if preceding_ext in DISALLOWED_EXECUTABLE_EXTENSIONS:
+            if pure_name.lower() == "dockerfile":
+                ext = ".dockerfile"
+            else:
                 raise InvalidFileException(
-                    message=f"Double extension attack detected with prohibited token '{preceding_ext}'.",
-                    details={
-                        "filename": pure_name,
-                        "prohibited_extension": preceding_ext,
-                    },
+                    message="File must possess a valid file extension.",
+                    details={"filename": pure_name},
                 )
+        else:
+            # Disallow multiple extensions if any preceding part is an executable extension
+            for part in parts[1:-1]:
+                preceding_ext = f".{part.lower()}"
+                if preceding_ext in DISALLOWED_EXECUTABLE_EXTENSIONS:
+                    raise InvalidFileException(
+                        message=f"Double extension attack detected with prohibited token '{preceding_ext}'.",
+                        details={
+                            "filename": pure_name,
+                            "prohibited_extension": preceding_ext,
+                        },
+                    )
 
-        # 6. Extract normalized extension
-        ext = f".{parts[-1].lower()}"
+            if parts[0].lower() == "dockerfile":
+                ext = ".dockerfile"
+            else:
+                # 6. Extract normalized extension
+                ext = f".{parts[-1].lower()}"
 
         # 7. Check strictly disallowed executable extensions
         if ext in DISALLOWED_EXECUTABLE_EXTENSIONS:
@@ -196,7 +196,7 @@ class FileValidator:
                 e.lower() if e.startswith(".") else f".{e.lower()}"
                 for e in allowed_extensions
             ]
-            if ext not in normalized_allowed:
+            if ext not in normalized_allowed and pure_name.lower() not in normalized_allowed:
                 raise UnsupportedFileTypeException(
                     message=f"File extension '{ext}' is not in the list of allowed extensions: {normalized_allowed}.",
                     details={
@@ -256,22 +256,67 @@ class FileValidator:
         Raises:
             UnsupportedFileTypeException: If MIME type is disallowed or violates magic byte assertions.
         """
-        # Determine canonical MIME type from extension
-        guessed_type, _ = mimetypes.guess_type(filename)
-        canonical_mime = guessed_type
+        # Exact canonical mapping for known supported formats and source code
+        known_map = {
+            ".pdf": "application/pdf",
+            ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".txt": "text/plain",
+            ".text": "text/plain",
+            ".yaml": "application/x-yaml",
+            ".yml": "application/x-yaml",
+            ".md": "text/markdown",
+            ".markdown": "text/markdown",
+            ".log": "text/plain",
+            ".csv": "text/csv",
+            ".json": "application/json",
+            ".html": "text/html",
+            ".htm": "text/html",
+            ".py": "text/x-python",
+            ".pyw": "text/x-python",
+            ".js": "text/javascript",
+            ".mjs": "text/javascript",
+            ".cjs": "text/javascript",
+            ".ts": "text/typescript",
+            ".mts": "text/typescript",
+            ".cts": "text/typescript",
+            ".jsx": "text/jsx",
+            ".tsx": "text/tsx",
+            ".java": "text/x-java-source",
+            ".c": "text/x-c",
+            ".cpp": "text/x-c++",
+            ".cc": "text/x-c++",
+            ".cxx": "text/x-c++",
+            ".h": "text/x-chdr",
+            ".hpp": "text/x-c++hdr",
+            ".hxx": "text/x-c++hdr",
+            ".cs": "text/x-csharp",
+            ".go": "text/x-go",
+            ".rs": "text/x-rust",
+            ".kt": "text/x-kotlin",
+            ".kts": "text/x-kotlin",
+            ".swift": "text/x-swift",
+            ".php": "text/x-php",
+            ".sql": "text/x-sql",
+            ".sh": "text/x-sh",
+            ".bash": "text/x-sh",
+            ".zsh": "text/x-sh",
+            ".ps1": "text/x-powershell",
+            ".psm1": "text/x-powershell",
+            ".dockerfile": "text/x-dockerfile",
+            "dockerfile": "text/x-dockerfile",
+        }
 
-        # Fallback mappings for common modern formats
-        if not canonical_mime:
-            if extension in {".yaml", ".yml"}:
-                canonical_mime = "application/x-yaml"
-            elif extension == ".md":
-                canonical_mime = "text/markdown"
-            elif extension == ".log":
-                canonical_mime = "text/plain"
-            elif client_mime_type:
-                canonical_mime = client_mime_type
-            else:
-                canonical_mime = "application/octet-stream"
+        if extension in known_map:
+            canonical_mime = known_map[extension]
+        elif filename.lower() == "dockerfile" or filename.lower().startswith("dockerfile."):
+            canonical_mime = "text/x-dockerfile"
+        else:
+            guessed_type, _ = mimetypes.guess_type(filename)
+            canonical_mime = (
+                guessed_type
+                if guessed_type and guessed_type != "application/octet-stream"
+                else (client_mime_type or "application/octet-stream")
+            )
 
         # Verify magic header if signature is defined
         if extension in cls.MAGIC_SIGNATURES:
@@ -297,7 +342,6 @@ class FileValidator:
         # Validate against allowed MIME types if configured
         if allowed_mime_types is not None:
             normalized_allowed = [m.lower() for m in allowed_mime_types]
-            # Also allow text/plain or text/x-log for log/md/txt
             if canonical_mime.lower() not in normalized_allowed:
                 # Check client MIME type as a fallback alternative if permitted
                 if client_mime_type and client_mime_type.lower() in normalized_allowed:

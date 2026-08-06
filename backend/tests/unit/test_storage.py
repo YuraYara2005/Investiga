@@ -84,16 +84,16 @@ def test_validator_reject_hidden_and_reserved_names() -> None:
 
 
 def test_validator_reject_executables_and_double_extensions() -> None:
-    """Test strict rejection of executables and disguised double extensions."""
+    """Test strict rejection of binary executables and disguised double extensions."""
     executable_files = [
         "malware.exe",
-        "script.sh",
         "payload.bat",
         "command.cmd",
         "macro.vbs",
-        "backdoor.ps1",
-        "exploit.py",
         "library.dll",
+        "trojan.com",
+        "installer.msi",
+        "driver.sys",
     ]
     for filename in executable_files:
         with pytest.raises((UnsupportedFileTypeException, InvalidFileException)):
@@ -102,12 +102,34 @@ def test_validator_reject_executables_and_double_extensions() -> None:
     double_extension_files = [
         "report.pdf.exe",
         "safe_document.exe.pdf",
-        "image.sh.pdf",
-        "guide.bat.docx",
+        "image.bat.pdf",
+        "guide.exe.docx",
     ]
     for filename in double_extension_files:
         with pytest.raises((InvalidFileException, UnsupportedFileTypeException)):
             FileValidator.sanitize_and_validate_filename(filename)
+
+
+def test_validator_accepts_source_code_and_html_files() -> None:
+    """Test validation and MIME resolution for supported HTML and source code files."""
+    valid_files = [
+        ("index.html", ".html", "text/html"),
+        ("app.py", ".py", "text/x-python"),
+        ("index.ts", ".ts", "text/typescript"),
+        ("component.tsx", ".tsx", "text/tsx"),
+        ("main.rs", ".rs", "text/x-rust"),
+        ("server.go", ".go", "text/x-go"),
+        ("Dockerfile", ".dockerfile", "text/x-dockerfile"),
+    ]
+    for filename, expected_ext, expected_mime in valid_files:
+        name, ext = FileValidator.sanitize_and_validate_filename(filename)
+        assert ext == expected_ext
+        mime = FileValidator.detect_and_validate_mime_type(
+            content=b"sample content",
+            filename=name,
+            extension=ext,
+        )
+        assert mime == expected_mime
 
 
 def test_validator_reject_disallowed_extensions() -> None:

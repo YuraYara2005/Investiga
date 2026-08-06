@@ -71,6 +71,7 @@ module = [
     "transformers.*",
     "qdrant_client.*",
     "grpc.*",
+    "bs4.*",
 ]
 ignore_missing_imports = true
 

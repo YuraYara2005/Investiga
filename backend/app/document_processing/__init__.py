@@ -22,8 +22,10 @@ from app.document_processing.parser_factory import DocumentParserFactory
 from app.document_processing.parsers import (
     BaseDocumentParser,
     DocxParser,
+    HtmlParser,
     MarkdownParser,
     PdfParser,
+    SourceCodeParser,
     TextParser,
 )
 from app.document_processing.processor import DocumentProcessor
@@ -38,10 +40,12 @@ __all__ = [
     "EmptyDocumentException",
     "ExtractedDocument",
     "ExtractedMetadata",
+    "HtmlParser",
     "MarkdownParser",
     "MetadataParser",
     "PdfParser",
     "ProcessingResult",
+    "SourceCodeParser",
     "TextCleaner",
     "TextParser",
     "UnsupportedDocumentException",

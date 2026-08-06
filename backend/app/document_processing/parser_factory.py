@@ -9,8 +9,10 @@ from pathlib import PurePath
 from app.document_processing.exceptions import UnsupportedDocumentException
 from app.document_processing.parsers.base_parser import BaseDocumentParser
 from app.document_processing.parsers.docx_parser import DocxParser
+from app.document_processing.parsers.html_parser import HtmlParser
 from app.document_processing.parsers.markdown_parser import MarkdownParser
 from app.document_processing.parsers.pdf_parser import PdfParser
+from app.document_processing.parsers.source_code_parser import SourceCodeParser
 from app.document_processing.parsers.text_parser import TextParser
 
 
@@ -26,6 +28,8 @@ class DocumentParserFactory:
                 PdfParser(),
                 DocxParser(),
                 MarkdownParser(),
+                HtmlParser(),
+                SourceCodeParser(),
                 TextParser(),
             ]
 
@@ -61,7 +65,9 @@ class DocumentParserFactory:
             UnsupportedDocumentException: If no registered parser supports the file format.
         """
         extension = PurePath(filename_or_extension).suffix
-        if not extension and filename_or_extension.startswith("."):
+        if PurePath(filename_or_extension).name.lower() == "dockerfile" or PurePath(filename_or_extension).name.lower().startswith("dockerfile."):
+            extension = ".dockerfile"
+        elif not extension and filename_or_extension.startswith("."):
             extension = filename_or_extension
         elif not extension and not filename_or_extension.startswith("."):
             extension = f".{filename_or_extension}"
