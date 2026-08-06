@@ -1,0 +1,66 @@
+# ==============================================================================
+# Investiga – .dockerignore
+# ==============================================================================
+# Prevents unnecessary files from entering the build context, keeping
+# images lean and avoiding accidental secret leakage.
+# ==============================================================================
+
+# Version control
+.git
+.github
+.gitignore
+
+# Python cache & compiled files
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.pyw
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env/
+
+# Environment secrets — keep only .env.docker (copied explicitly if needed)
+.env
+.env.*
+!.env.docker
+
+# Type checker & linter caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# IDE & editor configs
+.vscode/
+.idea/
+*.code-workspace
+
+# Frontend (future phase)
+frontend/
+
+# Test suites
+tests/
+backend/tests/
+
+# Documentation source
+docs/
+
+# Local data & run artefacts
+data/
+benchmark_runs/
+evaluation_runs/
+
+# Node dependencies (future frontend)
+node_modules/
+
+# Docker files themselves (no nesting needed)
+docker-compose*.yml
+docker/
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+*.swp

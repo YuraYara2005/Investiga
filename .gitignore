@@ -1,0 +1,59 @@
+# ==============================================================================
+# Investiga – .gitignore
+# ==============================================================================
+
+# Environment secrets – NEVER commit these
+.env
+.env.*
+!.env.example
+!.env.docker.example
+!.env.development    # committed intentionally (dev defaults only)
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Type checker / linter / test caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+htmlcov/
+.coverage
+coverage.xml
+
+# IDEs & editors
+.vscode/
+.idea/
+*.code-workspace
+*.swp
+*.swo
+
+# Node (future frontend)
+node_modules/
+.next/
+out/
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# Docker secrets
+.env.docker
+
+# Run artefacts (large, gitignored)
+benchmark_runs/
+evaluation_runs/
+
+# Data directory (user uploads, not tracked)
+data/uploads/

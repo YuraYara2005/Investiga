@@ -1,0 +1,98 @@
+services:
+  # ============================================================
+  # PostgreSQL 16 – Primary relational database
+  # ============================================================
+  postgres:
+    image: postgres:16
+    container_name: investiga_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-investiga_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - investiga_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-investiga_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ============================================================
+  # Qdrant – Vector database for semantic search
+  # ============================================================
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: investiga_qdrant
+    restart: unless-stopped
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    ports:
+      - "${QDRANT_HTTP_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+    networks:
+      - investiga_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:6333/readyz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ============================================================
+  # Investiga Backend – FastAPI ASGI application
+  # ============================================================
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: investiga_backend
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      # Override localhost references with compose service names
+      DATABASE__URL: "postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-investiga_db}"
+      VECTORSTORE__HOST: qdrant
+      VECTORSTORE__PORT: "6333"
+      VECTORSTORE__GRPC_PORT: "6334"
+      SERVER__HOST: "0.0.0.0"
+      SERVER__PORT: "8000"
+      SERVER__RELOAD: "false"
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    networks:
+      - investiga_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health/live || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+# ============================================================
+# Networks
+# ============================================================
+networks:
+  investiga_network:
+    driver: bridge
+
+# ============================================================
+# Persistent Volumes
+# ============================================================
+volumes:
+  postgres_data:
+    driver: local
+  qdrant_storage:
+    driver: local
