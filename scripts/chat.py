@@ -53,7 +53,9 @@ from scripts.common.console import (
     print_warning,
 )
 from scripts.common.factory import (
+    build_cli_bm25_index_async,
     create_cli_rag_service,
+    create_cli_retrieval_service,
 )
 from scripts.common.helpers import (
     format_ms,
@@ -410,7 +412,9 @@ async def run_chat_loop(args: argparse.Namespace) -> int:
     console = get_console()
 
     # Initialize RAG Service through DI
-    rag_service = create_cli_rag_service()
+    bm25_index = await build_cli_bm25_index_async()
+    retrieval_service = create_cli_retrieval_service(bm25_index=bm25_index)
+    rag_service = create_cli_rag_service(retrieval_service=retrieval_service)
 
     session = ChatSession(
         rag_service=rag_service,

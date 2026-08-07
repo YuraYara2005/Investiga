@@ -28,7 +28,7 @@ class Base(AsyncAttrs, DeclarativeBase):
     metadata = MetaData(naming_convention=CONSTRAINT_NAMING_CONVENTIONS)
 
     @declared_attr.directive
-    def __tablename__(cls) -> str:
+    def __tablename__(cls) -> str:  # pyright: ignore[reportIncompatibleVariableOverride]
         """Derive standard snake_case table names automatically from PascalCase class names."""
         name = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
         return name

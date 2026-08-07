@@ -21,12 +21,17 @@ from app.rag.models import (
 from app.rag.providers.base import LLMProvider
 
 
+DEFAULT_MOCK_RESPONSE = (
+    "Based on the evidence in [1], the database connection pool was exhausted due to unclosed sessions [2]."
+)
+
+
 class MockLLMProvider(LLMProvider):
     """Deterministic in-memory mock LLM provider for unit tests and local pipelines."""
 
     def __init__(
         self,
-        canned_response: str = "Based on the evidence in [1], the database connection pool was exhausted due to unclosed sessions [2].",
+        canned_response: str = DEFAULT_MOCK_RESPONSE,
         default_model: str = "mock-gpt-4",
         simulated_latency_ms: float = 5.0,
         should_fail: bool = False,
@@ -70,6 +75,35 @@ class MockLLMProvider(LLMProvider):
         """Toggle synthetic timeout state."""
         self._should_timeout = timeout
 
+    def _resolve_response(self, prompt: FormattedPrompt) -> str:
+        """Resolve response text, synthesizing grounded citations if using default mock."""
+        if self._canned_response != DEFAULT_MOCK_RESPONSE:
+            return self._canned_response
+
+        import re
+        source_matches = list(
+            re.finditer(
+                r"\[(\d+)\]\s*Source\s*\[([^\]]*)\]\s*\n(.*?)(?=\n\n\[|\n\n---\n\n|\n\nQUESTION:|\Z)",
+                prompt.user_prompt,
+                re.DOTALL,
+            )
+        )
+        if not source_matches:
+            return self._canned_response
+
+        parts: list[str] = []
+        for match in source_matches[:5]:
+            src_num = match.group(1)
+            body = match.group(3).strip()
+            sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", body) if len(s.strip()) > 15]
+            if sentences:
+                clean_sentence = sentences[0].rstrip(".")
+                parts.append(f"According to [{src_num}], {clean_sentence}.")
+
+        if parts:
+            return " ".join(parts)
+        return self._canned_response
+
     async def generate(
         self,
         prompt: FormattedPrompt,
@@ -100,11 +134,12 @@ class MockLLMProvider(LLMProvider):
         if self._simulated_latency_ms > 0:
             await asyncio.sleep(self._simulated_latency_ms / 1000.0)
 
+        response_text = self._resolve_response(prompt)
         prompt_tokens = prompt.estimated_prompt_tokens
-        completion_tokens = count_tokens(self._canned_response)
+        completion_tokens = count_tokens(response_text)
 
         return LLMResponse(
-            content=self._canned_response,
+            content=response_text,
             structured_data=None,
             usage=LLMUsage(
                 prompt_tokens=prompt_tokens,
@@ -145,7 +180,8 @@ class MockLLMProvider(LLMProvider):
                 message="Mock synthetic streaming failure.",
             )
 
-        words = self._canned_response.split(" ")
+        response_text = self._resolve_response(prompt)
+        words = response_text.split(" ")
         for idx, word in enumerate(words):
             chunk_text = word if idx == len(words) - 1 else f"{word} "
             yield StreamChunk(
@@ -158,7 +194,8 @@ class MockLLMProvider(LLMProvider):
 
         # Final terminating chunk
         prompt_tokens = prompt.estimated_prompt_tokens
-        completion_tokens = count_tokens(self._canned_response)
+        completion_tokens = count_tokens(response_text)
+
 
         yield StreamChunk(
             content="",

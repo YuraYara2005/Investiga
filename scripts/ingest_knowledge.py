@@ -41,7 +41,11 @@ from app.etl.models import (
     ETLResult,
     ETLSource,
 )
+from sqlalchemy import select
 from rich.table import Table
+
+# pyrefly: ignore [missing-import]
+from app.auth.models.user import User
 
 from scripts.common.console import (
     create_progress,
@@ -355,6 +359,19 @@ async def run_ingestion(args: argparse.Namespace) -> int:
             task_id = progress.add_task("[cyan]Ingesting & Vectorizing documents...", total=None)
 
             async with get_cli_db_session() as session:
+                # Resolve default user_id from database if not explicitly provided or invalid
+                if user_id == DEFAULT_SYSTEM_USER_ID:
+                    user_stmt = (
+                        select(User.id)
+                        .where(User.is_deleted.is_(False))
+                        .order_by(User.created_at.asc())
+                        .limit(1)
+                    )
+                    user_res = await session.execute(user_stmt)
+                    db_user_id = user_res.scalar_one_or_none()
+                    if db_user_id is not None:
+                        user_id = db_user_id
+
                 # Step 1: Discover documents
                 loader = FilesystemLoader()
                 discovered = []

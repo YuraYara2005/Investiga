@@ -16,6 +16,10 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from app.core.config import get_settings
 from app.db.base import Base
 
+# Import all domain models to ensure registration on Base.metadata
+import app.auth.models  # noqa: F401
+import app.knowledge.models  # noqa: F401
+
 # Interpret the config file for Python logging.
 config = context.config
 

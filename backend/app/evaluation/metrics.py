@@ -66,10 +66,12 @@ class RetrievalMetricsCalculator:
         """
         if k <= 0:
             return 0.0
-        relevant_set = set(relevant_ids)
         top_k = retrieved_ids[:k]
         if not top_k:
             return 0.0
+        if not relevant_ids:
+            return 1.0
+        relevant_set = set(relevant_ids)
         hits = sum(1 for doc_id in top_k if doc_id in relevant_set)
         return hits / len(top_k)
 
@@ -89,6 +91,8 @@ class RetrievalMetricsCalculator:
         Returns:
             MRR score in [0.0, 1.0].
         """
+        if not relevant_ids:
+            return 1.0 if retrieved_ids else 0.0
         relevant_set = set(relevant_ids)
         for rank, doc_id in enumerate(retrieved_ids, start=1):
             if doc_id in relevant_set:
@@ -181,8 +185,10 @@ class RetrievalMetricsCalculator:
         Returns:
             1.0 or 0.0.
         """
-        relevant_set = set(relevant_ids)
         top_k = retrieved_ids[:k]
+        if not relevant_ids:
+            return 1.0 if top_k else 0.0
+        relevant_set = set(relevant_ids)
         return 1.0 if any(doc_id in relevant_set for doc_id in top_k) else 0.0
 
     @staticmethod
@@ -203,9 +209,12 @@ class RetrievalMetricsCalculator:
         """
         if not retrieved_ids:
             return 0.0
+        if not relevant_ids:
+            return 1.0
         relevant_set = set(relevant_ids)
         hits = sum(1 for doc_id in retrieved_ids if doc_id in relevant_set)
         return hits / len(retrieved_ids)
+
 
     @staticmethod
     def context_recall(

@@ -611,7 +611,7 @@ class RAGSettings(BaseModel):
         description="Total token budget allocated for retrieved context in prompt.",
     )
     min_relevance_threshold: float = Field(
-        default=0.01,
+        default=0.001,
         ge=0.0,
         description="Minimum relevance confidence threshold to trigger generation.",
     )

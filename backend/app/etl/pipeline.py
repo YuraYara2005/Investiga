@@ -255,6 +255,10 @@ class ETLPipeline(ETLPipelineInterface):
 
             except Exception as exc:
                 last_error = exc
+                try:
+                    await session.rollback()
+                except Exception:
+                    pass
                 attempt += 1
                 if attempt <= max_retries:
                     logger.warning(

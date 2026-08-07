@@ -58,8 +58,10 @@ from scripts.common.console import (
     setup_signal_handling,
 )
 from scripts.common.factory import (
+    build_cli_bm25_index_async,
     create_cli_evaluator,
     create_cli_rag_service,
+    create_cli_retrieval_service,
 )
 from scripts.common.helpers import (
     format_duration,
@@ -365,8 +367,10 @@ async def run_evaluation(args: argparse.Namespace) -> int:
 
     _cancel_event = setup_signal_handling()
 
-    # 2. Initialize RAG Evaluator
-    rag_service = create_cli_rag_service()
+    # 2. Initialize RAG Evaluator & BM25 Index
+    bm25_index = await build_cli_bm25_index_async()
+    retrieval_service = create_cli_retrieval_service(bm25_index=bm25_index)
+    rag_service = create_cli_rag_service(retrieval_service=retrieval_service)
     evaluator = create_cli_evaluator(rag_service=rag_service)
 
     start_time = time.perf_counter()

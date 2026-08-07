@@ -14,6 +14,7 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.chunking.chunker import ChunkingEngine
@@ -689,7 +690,86 @@ class DocumentIngestionPipeline(DocumentIngestionPipelineInterface):
             file_size = len(raw_bytes)
             resolved_mime = mime_type or "application/octet-stream"
 
-        # Create database record
+        # Check if document with checksum already exists
+        existing_stmt = select(KnowledgeDocument).where(
+            KnowledgeDocument.checksum == chk,
+            KnowledgeDocument.is_deleted.is_(False),
+        )
+        existing_res = await session.execute(existing_stmt)
+        existing_doc = existing_res.scalar_one_or_none()
+
+        if existing_doc is not None:
+            if options and options.force_reindex:
+                existing_doc.title = title or Path(filename).stem
+                existing_doc.original_filename = filename
+                existing_doc.stored_filename = stored_filename
+                existing_doc.file_extension = file_ext
+                existing_doc.mime_type = resolved_mime
+                existing_doc.file_size = file_size
+                existing_doc.storage_path = storage_path
+                existing_doc.processing_status = ProcessingStatus.UPLOADED
+                existing_doc.embedding_status = EmbeddingStatus.NOT_STARTED
+                existing_doc.updated_at = datetime.now(UTC)
+                await session.commit()
+                return await self.ingest_document(
+                    document_id=existing_doc.id, session=session, options=options
+                )
+            elif existing_doc.processing_status in (
+                ProcessingStatus.FAILED,
+                ProcessingStatus.UPLOADED,
+            ):
+                existing_doc.title = title or existing_doc.title
+                existing_doc.stored_filename = stored_filename
+                existing_doc.storage_path = storage_path
+                existing_doc.file_size = file_size
+                existing_doc.processing_status = ProcessingStatus.UPLOADED
+                existing_doc.embedding_status = EmbeddingStatus.NOT_STARTED
+                existing_doc.updated_at = datetime.now(UTC)
+                await session.commit()
+                return await self.ingest_document(
+                    document_id=existing_doc.id, session=session, options=options
+                )
+            elif (
+                existing_doc.processing_status == ProcessingStatus.READY
+                and existing_doc.embedding_status == EmbeddingStatus.EMBEDDED
+            ):
+                logger.info(
+                    "document_already_indexed_skipping",
+                    document_id=str(existing_doc.id),
+                    checksum=chk,
+                    filename=filename,
+                )
+                return IngestionReport(
+                    document_id=existing_doc.id,
+                    status=IngestionStatus.COMPLETED,
+                    original_filename=existing_doc.original_filename,
+                    file_size_bytes=existing_doc.file_size,
+                    character_count=0,
+                    word_count=0,
+                    token_count=0,
+                    total_chunks=0,
+                    total_vectors_stored=0,
+                    embedding_model=self._embedding_service.model_info.model_name,
+                    vector_dimension=self._embedding_service.dimension,
+                    collection_name=self._settings.vectorstore.collection_name,
+                    metrics=IngestionMetrics(
+                        total_duration_ms=0.0,
+                        parsing_duration_ms=0.0,
+                        cleaning_duration_ms=0.0,
+                        chunking_duration_ms=0.0,
+                        embedding_duration_ms=0.0,
+                        vector_upload_duration_ms=0.0,
+                        database_duration_ms=0.0,
+                    ),
+                    errors=[],
+                    completed_at=datetime.now(UTC),
+                )
+            else:
+                return await self.ingest_document(
+                    document_id=existing_doc.id, session=session, options=options
+                )
+
+        # Create new database record
         doc = KnowledgeDocument(
             title=title or Path(filename).stem,
             original_filename=filename,

@@ -38,12 +38,6 @@ services:
       - "${QDRANT_GRPC_PORT:-6334}:6334"
     networks:
       - investiga_network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:6333/readyz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
 
   # ============================================================
   # Investiga Backend – FastAPI ASGI application
@@ -54,26 +48,32 @@ services:
       dockerfile: docker/backend/Dockerfile
     container_name: investiga_backend
     restart: unless-stopped
+
     env_file:
       - .env.docker
+
     environment:
-      # Override localhost references with compose service names
       DATABASE__URL: "postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-investiga_db}"
       VECTORSTORE__HOST: qdrant
       VECTORSTORE__PORT: "6333"
       VECTORSTORE__GRPC_PORT: "6334"
+
       SERVER__HOST: "0.0.0.0"
       SERVER__PORT: "8000"
       SERVER__RELOAD: "false"
+
     ports:
       - "${BACKEND_PORT:-8000}:8000"
+
     depends_on:
       postgres:
         condition: service_healthy
       qdrant:
-        condition: service_healthy
+        condition: service_started
+
     networks:
       - investiga_network
+
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8000/health/live || exit 1"]
       interval: 15s
@@ -94,5 +94,6 @@ networks:
 volumes:
   postgres_data:
     driver: local
+
   qdrant_storage:
     driver: local

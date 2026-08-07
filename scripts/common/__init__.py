@@ -15,6 +15,7 @@ from scripts.common.console import (
     setup_signal_handling,
 )
 from scripts.common.factory import (
+    build_cli_bm25_index_async,
     create_cli_benchmark,
     create_cli_embedding_service,
     create_cli_etl_service,
@@ -39,6 +40,7 @@ __all__ = [
     "INVESTIGA_THEME",
     "GracefulExit",
     "bootstrap_environment",
+    "build_cli_bm25_index_async",
     "create_cli_benchmark",
     "create_cli_embedding_service",
     "create_cli_etl_service",

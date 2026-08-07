@@ -53,6 +53,7 @@ from app.rag.providers.mock import MockLLMProvider
 from app.rag.providers.ollama import OllamaLLMProvider
 # pyrefly: ignore [missing-import]
 from app.rag.service import RAGService, create_rag_service
+from app.retrieval.bm25 import BM25Index
 # pyrefly: ignore [missing-import]
 from app.retrieval.retriever import HybridRetriever
 # pyrefly: ignore [missing-import]
@@ -63,6 +64,7 @@ from app.vectorstore.qdrant_provider import QdrantProvider
 from app.vectorstore.vector_repository import VectorRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
 logger = get_logger(__name__)
 
 
@@ -72,10 +74,11 @@ def get_cli_settings() -> Settings:
 
 
 @asynccontextmanager
-async def get_cli_db_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_cli_db_session(settings: Settings | None = None) -> AsyncGenerator[AsyncSession, None]:
     """Provide an isolated standalone asynchronous database session."""
     async with get_standalone_session() as session:
         yield session
+
 
 
 class MockEmbeddingProvider(EmbeddingProvider):
@@ -167,10 +170,35 @@ def create_cli_vector_repository(
     )
 
 
+async def build_cli_bm25_index_async(
+    settings: Settings | None = None,
+) -> BM25Index:
+    """Build and populate a BM25Index from PostgreSQL knowledge chunks."""
+    root_settings = settings or get_cli_settings()
+    try:
+        async with get_cli_db_session(root_settings) as session:
+            index = await BM25Index.from_async_session(
+                session=session,
+                k1=root_settings.retrieval.bm25_k1,
+                b=root_settings.retrieval.bm25_b,
+                epsilon=root_settings.retrieval.bm25_epsilon,
+            )
+            logger.info("cli_bm25_index_loaded", documents_count=index.total_documents)
+            return index
+    except Exception as exc:
+        logger.warning("cli_bm25_index_load_failed", error=str(exc))
+        return BM25Index(
+            k1=root_settings.retrieval.bm25_k1,
+            b=root_settings.retrieval.bm25_b,
+            epsilon=root_settings.retrieval.bm25_epsilon,
+        )
+
+
 def create_cli_retrieval_service(
     settings: Settings | None = None,
     embedding_service: EmbeddingService | None = None,
     vector_repository: VectorRepository | None = None,
+    bm25_index: BM25Index | None = None,
 ) -> RetrievalService:
     """Instantiate Hybrid RetrievalService with Dense and Sparse strategies."""
     root_settings = settings or get_cli_settings()
@@ -180,8 +208,10 @@ def create_cli_retrieval_service(
     return create_retrieval_service(
         embedding_service=emb_svc,
         vector_repository=vec_repo,
+        bm25_index=bm25_index,
         settings=root_settings,
     )
+
 
 
 def create_cli_rag_service(

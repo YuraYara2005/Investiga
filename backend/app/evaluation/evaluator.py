@@ -97,8 +97,11 @@ class RAGEvaluator:
             }
 
             # Compute retrieval metrics
+            retrieval_candidate_ids = list(
+                dict.fromkeys(retrieved_doc_ids + retrieved_chunk_ids)
+            )
             retrieval_metrics = RetrievalMetricsCalculator.compute_all(
-                retrieved_ids=retrieved_doc_ids,
+                retrieved_ids=retrieval_candidate_ids,
                 relevant_ids=sample.expected_documents,
                 scores=retrieved_scores,
                 retrieval_latency_ms=response.metrics.retrieval_duration_ms,

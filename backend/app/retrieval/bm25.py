@@ -179,6 +179,52 @@ class BM25Index:
             count += 1
         return count
 
+    @classmethod
+    async def from_async_session(
+        cls,
+        session: Any,
+        k1: float = 1.5,
+        b: float = 0.75,
+        epsilon: float = 0.25,
+    ) -> BM25Index:
+        """Construct and populate a BM25Index from PostgreSQL knowledge chunks."""
+        from sqlalchemy import select
+        from app.knowledge.models import KnowledgeChunk, KnowledgeDocument
+
+        index = cls(k1=k1, b=b, epsilon=epsilon)
+        stmt = (
+            select(
+                KnowledgeChunk.id,
+                KnowledgeChunk.document_id,
+                KnowledgeChunk.text,
+                KnowledgeChunk.chunk_index,
+                KnowledgeChunk.heading,
+                KnowledgeChunk.page_number,
+                KnowledgeDocument.title,
+                KnowledgeDocument.original_filename,
+                KnowledgeDocument.category,
+            )
+            .join(KnowledgeDocument, KnowledgeChunk.document_id == KnowledgeDocument.id)
+            .where(KnowledgeDocument.is_deleted == False)  # noqa: E712
+        )
+        result = await session.execute(stmt)
+        rows = result.fetchall()
+        for row in rows:
+            cat_val = row[8].value if hasattr(row[8], "value") else str(row[8]) if row[8] is not None else None
+            index.add_document(
+                chunk_id=str(row[0]),
+                document_id=str(row[1]),
+                text=row[2],
+                chunk_index=row[3],
+                heading=row[4],
+                page_number=row[5],
+                title=row[6],
+                file_name=row[7],
+                category=cat_val,
+            )
+        return index
+
+
     def _compute_idf(self, term: str) -> float:
         """Compute Robertson-Spärck Jones IDF with smoothed positive floor."""
         if term in self._idf_cache:
